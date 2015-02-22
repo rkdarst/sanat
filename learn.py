@@ -1,5 +1,8 @@
 # all the imports
+import os
 import sqlite3
+
+
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
 
@@ -108,91 +111,108 @@ class ListRunner(object):
             return makediff(answer, self.lookup[question])
 
 
-class SelectorForm(forms.Form):
-    wordlist = forms.ChoiceField(choices=get_wordfiles())
-    #wordlist = forms.MultipleChoiceField(choices=wordfiles)
-    from_english = forms.BooleanField(initial=True)
-    randomize = forms.BooleanField(initial=False, required=False)
+#class SelectorForm(forms.Form):
+#    wordlist = forms.ChoiceField(choices=get_wordfiles())
+#    #wordlist = forms.MultipleChoiceField(choices=wordfiles)
+#    from_english = forms.BooleanField(initial=True)
+#    randomize = forms.BooleanField(initial=False, required=False)
 
-@app.route('/')
-def select(request):
+from wtforms import Form, BooleanField, TextField, PasswordField, \
+     StringField, SelectField, HiddenField, validators
+from flask_wtf import Form
+
+class SelectorForm(Form):
+    wordlist = SelectField(choices=get_wordfiles())
+    #wordlist = forms.MultipleChoiceField(choices=wordfiles)
+    from_english = BooleanField(default=True)
+    randomize = BooleanField(default=False)
+
+
+@app.route('/', methods=('GET', 'POST'))
+def select():
     print "select"
     #from fitz import interactnow
-    SelectorForm.base_fields['wordlist']._set_choices(get_wordfiles())
+    SelectorForm.wordlist.choices = get_wordfiles()
+    print get_wordfiles()
+    #raise
+
     #form.field.
 
-    if request.method == 'POST':
-        form = SelectorForm(request.POST)
+    form = SelectorForm(request.form)
+    if form.validate_on_submit():
+        #return redirect('/success')
+
+
+    #if request.method == 'POST':
+        #form = SelectorForm(request.POST)
         #form.fields['wordlist']._set_choices(get_wordfiles())
-        if form.is_valid():
-            wordlist = form.cleaned_data['wordlist']
+        #if form.is_valid():
+            wordlist = form.wordlist.data
             #wordlist = wordlistwordfiles[int(wordlist)][1]
             #wordlist = wordlist[0]
-            request.session['wordlist'] = wordlist
-            request.session['obj'] = ListRunner(
+            session['wordlist'] = wordlist
+            session['obj'] = ListRunner(
                 wordlist,
-                from_english=form.cleaned_data['from_english'],
-                randomize=form.cleaned_data['randomize'],
+                from_english=form.from_english.data,
+                randomize=form.randomize.data,
                 )
             #from fitz import interact ; interact.interact()
-            if u'list' in form.data:
-                print "listing all words"
-                wordpairs = request.session['obj'].words
-                #HttpResponseRedirect('')
-                return render_to_response('select.html', locals(),
-                                   context_instance=RequestContext(request))
-                print "x"*100
-            return HttpResponseRedirect('/run/')
-    else:
-        form = SelectorForm()
+            #if u'list' in form.data:
+            #    print "listing all words"
+            #    wordpairs = request.session['obj'].words
+            #    #HttpResponseRedirect('')
+            #    return render_to_response('select.html', locals(),
+            #                       context_instance=RequestContext(request))
+            #    print "x"*100
+            return redirect('/run')
+    #else:
+    #    form = SelectorForm()
         #form.fields['wordlist']._set_choices(get_wordfiles())
 
     #return HttpResponse('test')
-    return render_to_response('select.html', locals(),
-                              context_instance=RequestContext(request))
+    return render_template('select.html', form=form)
 
-class RunForm(forms.Form):
-    question= forms.CharField(
-        widget=forms.HiddenInput
-        )
-    answer = forms.CharField(required=False)
+#class RunForm(forms.Form):
+#    question= forms.CharField(
+#        widget=forms.HiddenInput
+#        )
+#    answer = forms.CharField(required=False)
 
-@app.route('/run')
-def run(request):
-    session = request.session
-    runner = request.session['obj']
+class RunForm(Form):
+    question = HiddenField()
+    answer = StringField()
 
-    if request.method == 'POST':
-        print "post"
-        form = RunForm(request.POST)
-        if form.is_valid():
-            print "valid"
-            question = form.cleaned_data['question']
-            lastquestion = question
-            answer = form.cleaned_data['answer']
-            if u'ignore' in form.data:
-                print "ignoring word"
-                runner.ignore(question)
-            diff = runner.answer(question, answer)
-            #print answer, diff
+
+@app.route('/run/', methods=('GET', 'POST'))
+def run():
+    print run
+    runner = session['obj']
+    diff = None
+
+    form = RunForm()
+    if form.validate_on_submit():
+        question = form.question.data
+        lastquestion = question
+        answer = form.answer.data
+        if u'ignore' in form.data:
+            print "ignoring word"
+            runner.ignore(question)
+        diff = runner.answer(question, answer)
+
         # re-create the form
         newword = runner.question()
-        form = RunForm(initial=dict(question=newword))
-        form.fields['question'].initial = newword
+        form = RunForm(formdata=None,
+                       data=dict(question=newword, answer=None))
         print newword
-#            return HttpResponseRedirect('/run/')
     else:
-        #correct = True
-        #print "get"
-        #diff = '<null>', '<null>'
         newword = runner.question()
-        form = RunForm(initial=dict(question=newword))
+        form = RunForm(formdata=None,
+                       data=dict(question=newword, answer=None))
 
     session['obj'] = runner
-    return render_to_response('run.html', locals(),
-                              context_instance=RequestContext(request))
-
-    pass
+    return render_template('run.html',
+                           form=form, diff=diff, newword=newword,
+                           lastquestion=lastquestion)
 
 
 def makediff(s1, s2):
