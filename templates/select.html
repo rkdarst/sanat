@@ -1,0 +1,23 @@
+<html>
+
+<body>
+{% block content %}
+
+{% if wordpairs%}
+<table border="1">
+{% for word in wordpairs %}
+  <tr> <td>{{word.0}}</td> <td>{{word.1}}</td></tr>
+{% endfor%}
+</table>
+{%endif%}
+
+<form action="/" method="post">{% csrf_token %}
+{{ form.as_p }}
+<input type="submit" value="Submit" />
+<input type="submit" value="List all words" name="list" />
+</form>
+
+{% endblock content %}
+</body>
+
+</html>
