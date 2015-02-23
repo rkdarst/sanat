@@ -10,16 +10,16 @@
 <font size="+2">
 
 {% if diff %}
-[{{lastquestion}}] &nbsp;&nbsp; diff:
-{{ diff.0|safe }} &rarr; {{ diff.1|safe }}
+[{{lastquestion}}: &nbsp;&nbsp; diff:
+{{ diff.0|safe }} &rarr; {{ diff.1|safe }}]
 <br>
 {% endif %}
-translate: {{ newword }}
+
 <br>
 
 <form name="run" action="." method="post" autocomplete="off">{{ form.csrf_token }}
 {{ form.question() }}
-{{ form.answer() }}
+{{ newword }} = {{ form.answer() }}<p>
 <input type="submit" value="Submit" />
 <input type="submit" value="Ignore this word for this round" name="ignore" />
 </form>

@@ -6,7 +6,7 @@
 {% if wordpairs %}
 <table border="1">
 {% for word in wordpairs %}
-  <tr> <td>{{word.0}}</td> <td>{{word.1}}</td></tr>
+  <tr> <td>{{ loop.index }}</td> <td>{{word.0}}</td> <td>{{word.1}}</td></tr>
 {% endfor %}
 </table>
 {%endif%}

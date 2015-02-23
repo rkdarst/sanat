@@ -1,7 +1,8 @@
 # all the imports
 import os
+import random
 import sqlite3
-
+import time
 
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
@@ -29,15 +30,19 @@ def get_wordfiles():
     return wordfiles
 
 class ListRunner(object):
+    def __str__(self):
+        return 'ListRunner(%s)'%self.wordlist
+    __repr__ = __str__
     def __init__(self, wordlist, from_english=False,
                  randomize=False):
-        print "init ListRunner"
+        print "init ListRunner", wordlist
         self.wordlist = wordlist
         data = open(worddir+wordlist).read().decode('utf-8').split('\n')
         data = [ l.strip() for l in data ]
         data = [ l for l in data if l and not l.startswith('#') ]
         words = [ l.split('\\', 1) for l in data ]
         words = [ (x.strip(),y.strip()) for (x,y) in words ]
+        print words
         if from_english:
             words = [ (y,x) for (x,y) in words ]
         self.words = words
@@ -126,45 +131,50 @@ class SelectorForm(Form):
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(default=True)
     randomize = BooleanField(default=False)
+    list = BooleanField(default=False)
 
+listrunner_store = { }
 
 @app.route('/', methods=('GET', 'POST'))
 def select():
     print "select"
+    print session
     #from fitz import interactnow
     SelectorForm.wordlist.choices = get_wordfiles()
-    print get_wordfiles()
+    #print get_wordfiles()
     #raise
 
     #form.field.
 
     form = SelectorForm(request.form)
     if form.validate_on_submit():
-        #return redirect('/success')
+        print "valid"
+        wordlist = form.wordlist.data
+        #wordlist = wordlistwordfiles[int(wordlist)][1]
+        #wordlist = wordlist[0]
+        print repr(wordlist)
+        session['wordlist'] = wordlist
+        id_ = random.randint(0, 2**32-1)
+        session['id'] = id_
+        runner = ListRunner(
+            wordlist,
+            from_english=form.from_english.data,
+            randomize=form.randomize.data,
+            )
+        listrunner_store[id_] = runner, time.time()
+        print session
+        #session.modified = True
 
-
-    #if request.method == 'POST':
-        #form = SelectorForm(request.POST)
-        #form.fields['wordlist']._set_choices(get_wordfiles())
-        #if form.is_valid():
-            wordlist = form.wordlist.data
-            #wordlist = wordlistwordfiles[int(wordlist)][1]
-            #wordlist = wordlist[0]
-            session['wordlist'] = wordlist
-            session['obj'] = ListRunner(
-                wordlist,
-                from_english=form.from_english.data,
-                randomize=form.randomize.data,
-                )
-            #from fitz import interact ; interact.interact()
-            #if u'list' in form.data:
-            #    print "listing all words"
-            #    wordpairs = request.session['obj'].words
-            #    #HttpResponseRedirect('')
-            #    return render_to_response('select.html', locals(),
-            #                       context_instance=RequestContext(request))
-            #    print "x"*100
-            return redirect('/run')
+        #print form._fields
+        #raise
+        #from fitz import interact ; interact.interact()
+        if form.list.data:
+        #    print "listing all words"
+            wordpairs = runner.words
+        #    #HttpResponseRedirect('')
+            return render_template('select.html', form=form, wordpairs=wordpairs)
+        #    print "x"*100
+        return redirect('/run/')
     #else:
     #    form = SelectorForm()
         #form.fields['wordlist']._set_choices(get_wordfiles())
@@ -185,9 +195,14 @@ class RunForm(Form):
 
 @app.route('/run/', methods=('GET', 'POST'))
 def run():
-    print run
-    runner = session['obj']
+    print 'run'
+    print session
+    print repr(session['id'])
+    print listrunner_store
+    runner, creation_time = listrunner_store[session['id']]
     diff = None
+    lastquestion = None
+    #raise
 
     form = RunForm()
     if form.validate_on_submit():
@@ -203,13 +218,13 @@ def run():
         newword = runner.question()
         form = RunForm(formdata=None,
                        data=dict(question=newword, answer=None))
-        print newword
     else:
         newword = runner.question()
         form = RunForm(formdata=None,
                        data=dict(question=newword, answer=None))
 
-    session['obj'] = runner
+    #session['obj'] = runner
+    session.modified = True
     return render_template('run.html',
                            form=form, diff=diff, newword=newword,
                            lastquestion=lastquestion)
