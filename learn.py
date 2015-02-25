@@ -42,6 +42,14 @@ class ListRunner(object):
         data = open(worddir+wordlist).read().decode('utf-8').split('\n')
         data = [ l.strip() for l in data ]
         data = [ l for l in data if l and not l.startswith('#') ]
+        if randomize:
+            # local randomization
+            data2 = [ ]
+            data.reverse()
+            while data:
+                i = random.randint(1, min(5, len(data)))
+                data2.append(data.pop(-i))
+            data = data2
         words = [ l.split('\\', 1) for l in data ]
         words = [ (x.strip(),y.strip()) for (x,y) in words ]
         print words
