@@ -3,6 +3,7 @@
 # all the imports
 import os
 import random
+import re
 import sqlite3
 import time
 
@@ -32,16 +33,24 @@ def get_wordfiles():
     return wordfiles
 
 class ListRunner(object):
+    shingle_data = None
     def __str__(self):
         return 'ListRunner(%s)'%self.wordlist
     __repr__ = __str__
     def __init__(self, wordlist, from_english=False,
-                 randomize=False):
-        print "init ListRunner", wordlist
+                 randomize=False, provide_choices=False, segment='all'):
+        #print "init ListRunner", wordlist
         self.wordlist = wordlist
         data = open(worddir+wordlist).read().decode('utf-8').split('\n')
+        # Check if original file is reversed
+        if '###reversed' in open(worddir+wordlist).read(512):
+            from_english = not from_english
+        #
         data = [ l.strip() for l in data ]
         data = [ l for l in data if l and not l.startswith('#') ]
+        # if given data segment, only suggest the words from there.
+        if segment is not None and segment != 'all':
+            data = data[segment[0]: segment[1]]
         if randomize:
             # local randomization
             data2 = [ ]
@@ -51,19 +60,41 @@ class ListRunner(object):
                 data2.append(data.pop(-i))
             data = data2
         words = [ l.split('\\', 1) for l in data ]
-        words = [ (x.strip(),y.strip()) for (x,y) in words ]
-        print words
+        words = [ (x.strip(),y.strip()) for (x,y) in words
+                  if x.strip() and y.strip()]  # ignore words missing a def.
+        #print words
         if from_english:
             words = [ (y,x) for (x,y) in words ]
+
+        # If asked to provide choices, make shingles and store them
+        if provide_choices:
+            import shingle
+            self.shingle_data = shingle.Shingler(words=(x[1] for x in words),
+                                                 n=2)
+        #
+        words = [ (q, re.sub('\([^)]*\)', '', a).strip())
+                  for q,a in words ]
         self.words = words
         self.questions = [ q for (q,v) in words ]
         self.answers = [ v for (q,v) in words ]
+        #print self.answers
+        #print self.answers
         self.lookup = dict(words)
         self.wordstat = dict([ (q, dict(r=0, w=0, hist=[], last=None))
                                for (q,v) in words ])
         self.count = 0
         self.countSecondRound = None
     def question(self):
+        nextword = self._question_0()
+        nextword_answer = self.lookup[nextword]
+        choices = None
+        if self.shingle_data:
+            jaccs = self.shingle_data.find_similar(nextword_answer)
+            print jaccs
+            choices = [x[1] for x in jaccs][:20]
+            random.shuffle(choices)
+        return nextword, dict(choices=choices)
+    def _question_0(self):
         count = self.count
         self.count += 1
         for j in range(len(self.questions)):
@@ -112,11 +143,11 @@ class ListRunner(object):
         #global i
         #nextword = self.questions[i]
         #i += 1
-        print self.i
+        #print self.i
         return nextword
     def answer(self, question, answer):
         correct = self.lookup[question].lower() == answer.lower()
-        print self.wordstat
+        #print self.wordstat
         self.wordstat[question]['hist'].append(correct)
         if correct:
             self.wordstat[question]['r'] += 1
@@ -141,7 +172,9 @@ class SelectorForm(Form):
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(default=True)
     randomize = BooleanField(default=False)
-    list = BooleanField(default=False)
+    provide_choices = BooleanField(default=False)
+    segment = SelectField(default=False)
+    list_words = BooleanField(default=False)
 
 listrunner_store = { }
 
@@ -157,6 +190,14 @@ def select():
     #form.field.
 
     form = SelectorForm(request.form)
+
+    # Compute options for segments (0-24, 25-30, etc)
+    choices = [('all', 'All'), ]
+    segment_size = 25
+    for i in range(500//segment_size):
+        choices.append((i, '% 3d-% 3d'%(segment_size*i, segment_size*(i+1)-1)))
+    form.segment.choices = choices
+
     if form.validate_on_submit():
         print "valid"
         wordlist = form.wordlist.data
@@ -170,6 +211,8 @@ def select():
             wordlist,
             from_english=form.from_english.data,
             randomize=form.randomize.data,
+            segment=(segment_size*form.segment.data, segment_size*(form.segment.data+1)-1) if form.segment.data!='all' else 'all',
+            provide_choices=form.provide_choices.data,
             )
         listrunner_store[id_] = runner, time.time()
         print session
@@ -178,7 +221,7 @@ def select():
         #print form._fields
         #raise
         #from fitz import interact ; interact.interact()
-        if form.list.data:
+        if form.list_words.data:
         #    print "listing all words"
             wordpairs = runner.words
         #    #HttpResponseRedirect('')
@@ -212,6 +255,7 @@ def run():
     runner, creation_time = listrunner_store[session['id']]
     diff = None
     lastquestion = None
+    newword_data = None
     #raise
 
     form = RunForm()
@@ -225,11 +269,11 @@ def run():
         diff = runner.answer(question, answer)
 
         # re-create the form
-        newword = runner.question()
+        newword, newword_data = runner.question()
         form = RunForm(formdata=None,
                        data=dict(question=newword, answer=None))
     else:
-        newword = runner.question()
+        newword, newword_data = runner.question()
         form = RunForm(formdata=None,
                        data=dict(question=newword, answer=None))
 
@@ -237,7 +281,8 @@ def run():
     session.modified = True
     return render_template('run.html',
                            form=form, diff=diff, newword=newword,
-                           lastquestion=lastquestion)
+                           lastquestion=lastquestion,
+                           newword_data=newword_data)
 
 
 def makediff(s1, s2):
