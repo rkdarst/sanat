@@ -33,7 +33,7 @@ def get_wordfiles():
     return wordfiles
 
 class ListRunner(object):
-    shingle_data = None
+    shingle_data = { }
     def __str__(self):
         return 'ListRunner(%s)'%self.wordlist
     __repr__ = __str__
@@ -69,8 +69,12 @@ class ListRunner(object):
         # If asked to provide choices, make shingles and store them
         if provide_choices:
             import shingle
-            self.shingle_data = shingle.Shingler(words=(x[1] for x in words),
-                                                 n=2)
+            self.shingle_data[1] = shingle.Shingler(words=(x[1] for x in words),
+                                                    n=1)
+            self.shingle_data[2] = shingle.Shingler(words=(x[1] for x in words),
+                                                    n=2)
+            self.shingle_data[3] = shingle.Shingler(words=(x[1] for x in words),
+                                                    n=3)
         #
         words = [ (q, re.sub('\([^)]*\)', '', a).strip())
                   for q,a in words ]
@@ -89,9 +93,22 @@ class ListRunner(object):
         nextword_answer = self.lookup[nextword]
         choices = None
         if self.shingle_data:
-            jaccs = self.shingle_data.find_similar(nextword_answer)
-            print jaccs
-            choices = [x[1] for x in jaccs][:20]
+            choices = set()
+            n_choices = 10
+            for n in (3, 2, 1):
+                import heapq
+                jaccs = self.shingle_data[n].find_similar(nextword_answer)
+                print n, jaccs
+                while len(choices) < n_choices and jaccs:
+                    jacc, hint = heapq.heappop(jaccs)
+                    if hint in choices: continue
+                    #if random.random() < .8: continue
+                    choices.add(hint)
+                    if len(choices) >= n_choices:
+                        break
+                if len(choices) >= n_choices:
+                    break
+            choices = list(choices)
             random.shuffle(choices)
         return nextword, dict(choices=choices)
     def _question_0(self):

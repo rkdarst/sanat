@@ -21,7 +21,7 @@
 {{ form.question() }}
 {{ newword }} = {{ form.answer() }}<p>
 {% if newword_data.choices %}
-<font size="-0">hints: {% for hint in newword_data.choices %} {{ hint }}; {% endfor %} </font><p>
+<font size="-0">hints: {% for hint in newword_data.choices %} {{ hint }} &#151; {% endfor %} </font><p>
 {% endif %}
 <input type="submit" value="Submit" />
 <input type="submit" value="Ignore this word for this round" name="ignore" />
