@@ -244,7 +244,7 @@ def select():
         #    #HttpResponseRedirect('')
             return render_template('select.html', form=form, wordpairs=wordpairs)
         #    print "x"*100
-        return redirect('/run/')
+        return redirect(url_for('run'))
     #else:
     #    form = SelectorForm()
         #form.fields['wordlist']._set_choices(get_wordfiles())

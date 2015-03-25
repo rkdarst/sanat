@@ -11,7 +11,7 @@
 </table>
 {%endif%}
 
-<form action="/" method="post">{{ form.csrf_token }}
+<form action="." method="post">{{ form.csrf_token }}
 {{ form.wordlist.name }}  {{ form.wordlist() }}<p>
 {{ form.from_english.name }}  {{ form.from_english() }}<p>
 {{ form.randomize.name }}  {{ form.randomize() }}<p>
