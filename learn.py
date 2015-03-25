@@ -48,23 +48,30 @@ class ListRunner(object):
         #
         data = [ l.strip() for l in data ]
         data = [ l for l in data if l and not l.startswith('#') ]
-        # if given data segment, only suggest the words from there.
-        if segment is not None and segment != 'all':
-            data = data[segment[0]: segment[1]]
-        if randomize:
-            # local randomization
-            data2 = [ ]
-            data.reverse()
-            while data:
-                i = random.randint(1, min(5, len(data)))
-                data2.append(data.pop(-i))
-            data = data2
+        # Split data into words, do basic pre-processing
         words = [ l.split('\\', 1) for l in data ]
         words = [ (x.strip(),y.strip()) for (x,y) in words
                   if x.strip() and y.strip()]  # ignore words missing a def.
-        #print words
+        # Swap order if desired.  First word is question and second
+        # word is answer.
         if from_english:
             words = [ (y,x) for (x,y) in words ]
+        # Remove parenthesized groups from answers.
+        words = [ (q, re.sub('\([^)]*\)', '', a).strip())
+                  for q,a in words ]
+        # Store all_data to use for shingling below
+        all_words = words
+        # if given data segment, only suggest the words from there.
+        if segment is not None and segment != 'all':
+            words = words[segment[0]: segment[1]]
+        if randomize:
+            # local randomization
+            words2 = [ ]
+            words.reverse()
+            while words:
+                i = random.randint(1, min(5, len(words)))
+                words2.append(words.pop(-i))
+            words = words2
 
         # If asked to provide choices, make shingles and store them
         if provide_choices:
@@ -75,9 +82,7 @@ class ListRunner(object):
                                                     n=2)
             self.shingle_data[3] = shingle.Shingler(words=(x[1] for x in words),
                                                     n=3)
-        #
-        words = [ (q, re.sub('\([^)]*\)', '', a).strip())
-                  for q,a in words ]
+        # Done with preprocessing.  Create standard data structures.
         self.words = words
         self.questions = [ q for (q,v) in words ]
         self.answers = [ v for (q,v) in words ]
@@ -212,7 +217,7 @@ def select():
     choices = [('all', 'All'), ]
     segment_size = 25
     for i in range(500//segment_size):
-        choices.append((i, '% 3d-% 3d'%(segment_size*i, segment_size*(i+1)-1)))
+        choices.append((str(i), '% 3d-% 3d'%(segment_size*i, segment_size*(i+1)-1)))
     form.segment.choices = choices
 
     if form.validate_on_submit():
@@ -228,7 +233,7 @@ def select():
             wordlist,
             from_english=form.from_english.data,
             randomize=form.randomize.data,
-            segment=(segment_size*form.segment.data, segment_size*(form.segment.data+1)-1) if form.segment.data!='all' else 'all',
+            segment=(segment_size*int(form.segment.data), segment_size*(int(form.segment.data)+1)-1) if form.segment.data!='all' else 'all',
             provide_choices=form.provide_choices.data,
             )
         listrunner_store[id_] = runner, time.time()
