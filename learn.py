@@ -7,13 +7,22 @@ import re
 import sqlite3
 import time
 
+import sys
+sys.path.append(os.path.dirname(__file__))
+sys.path.append('/srv/learn/pymod/')
+print sys.path
+
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
 
 # configuration
 #DATABASE = '/tmp/flaskr.db'
-DEBUG = True
-SECRET_KEY = 'tnaou64oatn!#%>ntao64\ue7!$%$%@!ouiuueau'
+secret_fname = os.path.join(os.path.dirname(__file__), 'secret.txt')
+SECRET_KEY = open(secret_fname).read()
+#if os.path.exists(os.path)
+#SECRET_KEY = 'tnaou64oatn!#%>ntao64\ue7!$%$%@!ouiuueau'
+if __name__ == '__main__':
+    DEBUG = True
 #USERNAME = 'admin'
 #PASSWORD = 'default'
 
@@ -21,8 +30,10 @@ SECRET_KEY = 'tnaou64oatn!#%>ntao64\ue7!$%$%@!ouiuueau'
 app = Flask(__name__)
 app.config.from_object(__name__)
 
+application = app
 
-worddir = '/home/richard/learn/data/'
+
+worddir = '/srv/learn/data/'
 def get_wordfiles():
     wordfiles = tuple((f, f) for f in sorted(
         x for x in os.listdir(worddir)
@@ -103,7 +114,7 @@ class ListRunner(object):
             for n in (3, 2, 1):
                 import heapq
                 jaccs = self.shingle_data[n].find_similar(nextword_answer)
-                print n, jaccs
+                #print n, jaccs
                 while len(choices) < n_choices and jaccs:
                     jacc, hint = heapq.heappop(jaccs)
                     if hint in choices: continue
@@ -202,8 +213,8 @@ listrunner_store = { }
 
 @app.route('/', methods=('GET', 'POST'))
 def select():
-    print "select"
-    print session
+    #print "select"
+    #print session
     #from fitz import interactnow
     SelectorForm.wordlist.choices = get_wordfiles()
     #print get_wordfiles()
@@ -221,11 +232,11 @@ def select():
     form.segment.choices = choices
 
     if form.validate_on_submit():
-        print "valid"
+        #print "valid"
         wordlist = form.wordlist.data
         #wordlist = wordlistwordfiles[int(wordlist)][1]
         #wordlist = wordlist[0]
-        print repr(wordlist)
+        #print repr(wordlist)
         session['wordlist'] = wordlist
         id_ = random.randint(0, 2**32-1)
         session['id'] = id_
@@ -237,7 +248,7 @@ def select():
             provide_choices=form.provide_choices.data,
             )
         listrunner_store[id_] = runner, time.time()
-        print session
+        #print session
         #session.modified = True
 
         #print form._fields
@@ -270,10 +281,10 @@ class RunForm(Form):
 
 @app.route('/run/', methods=('GET', 'POST'))
 def run():
-    print 'run'
-    print session
-    print repr(session['id'])
-    print listrunner_store
+    #print 'run'
+    #print session
+    #print repr(session['id'])
+    #print listrunner_store
     runner, creation_time = listrunner_store[session['id']]
     diff = None
     lastquestion = None
