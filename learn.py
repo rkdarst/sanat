@@ -87,11 +87,11 @@ class ListRunner(object):
         # If asked to provide choices, make shingles and store them
         if provide_choices:
             import shingle
-            self.shingle_data[1] = shingle.Shingler(words=(x[1] for x in words),
+            self.shingle_data[1] = shingle.Shingler(words=(x[1] for x in all_words),
                                                     n=1)
-            self.shingle_data[2] = shingle.Shingler(words=(x[1] for x in words),
+            self.shingle_data[2] = shingle.Shingler(words=(x[1] for x in all_words),
                                                     n=2)
-            self.shingle_data[3] = shingle.Shingler(words=(x[1] for x in words),
+            self.shingle_data[3] = shingle.Shingler(words=(x[1] for x in all_words),
                                                     n=3)
         # Done with preprocessing.  Create standard data structures.
         self.words = words
@@ -106,6 +106,8 @@ class ListRunner(object):
         self.countSecondRound = None
     def question(self):
         nextword = self._question_0()
+        if nextword == StopIteration:
+            return StopIteration, {}
         nextword_answer = self.lookup[nextword]
         choices = None
         if self.shingle_data:
@@ -205,7 +207,7 @@ class SelectorForm(Form):
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(default=True)
     randomize = BooleanField(default=False)
-    provide_choices = BooleanField(default=False)
+    provide_choices = BooleanField('Provide hints?', default=False)
     segment = SelectField(default=False)
     list_words = BooleanField(default=False)
 
@@ -297,18 +299,22 @@ def run():
         lastquestion = question
         answer = form.answer.data
         if u'ignore' in form.data:
-            print "ignoring word"
+            #print "ignoring word"
             runner.ignore(question)
         diff = runner.answer(question, answer)
 
         # re-create the form
-        newword, newword_data = runner.question()
-        form = RunForm(formdata=None,
-                       data=dict(question=newword, answer=None))
+        #newword, newword_data = runner.question()
+        #form = RunForm(formdata=None,
+        #               data=dict(question=newword, answer=None))
     else:
-        newword, newword_data = runner.question()
-        form = RunForm(formdata=None,
-                       data=dict(question=newword, answer=None))
+        pass
+    newword, newword_data = runner.question()
+    if newword == StopIteration:
+        # Have some handling of the end of process...
+        return redirect(url_for('select'))
+    form = RunForm(formdata=None,
+                   data=dict(question=newword, answer=None))
 
     #session['obj'] = runner
     session.modified = True

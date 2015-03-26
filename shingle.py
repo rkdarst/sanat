@@ -14,8 +14,9 @@ class Shingler(object):
 
     def find_similar(self, word):
         similar = defaultdict(int)
-        for i in range(len(word)-self.n+1):
-            shingle = word[i:i+self.n]
+        #for i in range(len(word)-self.n+1):
+        #    shingle = word[i:i+self.n]
+        for shingle in set(word[i:i+self.n] for i in range(len(word)-self.n+1)):
             for other_word in self.data.get(shingle, ()):
                 similar[other_word] += 1
         jaccs = [(-overlap/float(len(word)+len(other_word)-overlap-2*(self.n-1)), other_word)
