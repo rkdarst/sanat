@@ -10,7 +10,7 @@ import time
 import sys
 sys.path.append(os.path.dirname(__file__))
 sys.path.append('/srv/learn/pymod/')
-print sys.path
+#print sys.path
 
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
