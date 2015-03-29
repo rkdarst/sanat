@@ -14,6 +14,7 @@ sys.path.append('/srv/learn/pymod/')
 
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
+from flask import Markup # html escaping
 
 # configuration
 #DATABASE = '/tmp/flaskr.db'
@@ -346,15 +347,15 @@ def makediff(s1, s2):
                 s1new[-2] += s1[i1:i2]
                 s2new[-2] += s2[j1:j2]
             else:
-                s1new.append(s1[i1:i2])
-                s2new.append(s2[j1:j2])
+                s1new.append(Markup(s1[i1:i2]))
+                s2new.append(Markup(s2[j1:j2]))
         elif op == 'insert':
-            s2new.extend(('<b>', s2[j1:j2], '</b>'))
+            s2new.extend(('<b>', Markup(s2[j1:j2]), '</b>'))
         elif op == "delete":
-            s1new.extend(('<strike>', s1[i1:i2], '</strike>'))
+            s1new.extend(('<strike>', Markup(s1[i1:i2]), '</strike>'))
         elif op == 'replace':
-            s1new.extend(('<strike>', s1[i1:i2], '</strike>'))
-            s2new.extend(('<b>', s2[j1:j2], '</b>'))
+            s1new.extend(('<strike>', Markup(s1[i1:i2]), '</strike>'))
+            s2new.extend(('<b>', Markup(s2[j1:j2]), '</b>'))
         previousOp = op
         #if debug: print s1, s2
         #if debug: print "bottom"
