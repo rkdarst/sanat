@@ -5,12 +5,12 @@ import heapq
 class Shingler(object):
     def __init__(self, words, n=2):
         self.n = n
-        self.data = defaultdict(list)
+        self.data = defaultdict(set)
         for word in words:
             self.add(word)
     def add(self, word):
         for i in range(len(word)-self.n+1):
-            self.data[word[i:i+self.n]].append(word)
+            self.data[word[i:i+self.n]].add(word)
 
     def find_similar(self, word):
         similar = defaultdict(int)
