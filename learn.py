@@ -62,6 +62,7 @@ class ListRunner(object):
         data = [ l for l in data if l and not l.startswith('#') ]
         # Split data into words, do basic pre-processing
         words = [ l.split('\\', 1) for l in data ]
+        words = [ x for x in words if len(x) == 2 ]
         words = [ (x.strip(),y.strip()) for (x,y) in words
                   if x.strip() and y.strip()]  # ignore words missing a def.
         # Swap order if desired.  First word is question and second
