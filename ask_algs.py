@@ -6,6 +6,16 @@ import re
 import learn
 import util
 
+def list_algs():
+    """List all memorization argorithms available"""
+    return sorted(name for name, obj in globals().iteritems()
+                  if isinstance(obj, type)
+                     if issubclass(obj, _ListRunner)
+                     and not obj==_ListRunner )
+def get_alg(name):
+    """Get a memorization algorithm by name"""
+    return globals()[name]
+
 class _ListRunner(object):
     def __str__(self):
         return 'ListRunner(%s)'%self.wordlist
@@ -107,10 +117,10 @@ class _ListRunner(object):
                         full_answer=self.lookup[question][1])
 
 
-class ListRunner(_ListRunner):
+class Original(_ListRunner):
     def __init__(self, *args, **kwargs):
         # super-initialization
-        super(ListRunner, self).__init__(*args, **kwargs)
+        super(Original, self).__init__(*args, **kwargs)
 
         self.wordstat = dict([ (q, dict(r=0, w=0, hist=[], last=None))
                                for q in self.questions ])

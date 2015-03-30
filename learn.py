@@ -49,6 +49,7 @@ class SelectorForm(Form):
     randomize = BooleanField(default=False)
     provide_choices = BooleanField('Provide hints?', default=False)
     segment = SelectField(default=False)
+    alg = SelectField()
     do_list_words = BooleanField(default=False)
 
 listrunner_store = { }
@@ -57,6 +58,7 @@ listrunner_store = { }
 def select():
     SelectorForm.wordlist.choices = util.get_wordfiles()
     form = SelectorForm(request.form)
+    form.alg.choices = [(name, name) for name in ask_algs.list_algs()]
 
     # Compute options for segments (0-24, 25-30, etc)
     choices = [('all', 'All'), ]
@@ -70,7 +72,8 @@ def select():
         session['wordlist'] = wordlist
         id_ = random.randint(0, 2**32-1)
         session['id'] = id_
-        runner = ask_algs.ListRunner(
+        run_class = ask_algs.get_alg(form.alg.data)
+        runner = run_class(
             wordlist,
             from_english=form.from_english.data,
             randomize=form.randomize.data,
