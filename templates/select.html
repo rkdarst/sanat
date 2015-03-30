@@ -12,12 +12,12 @@
 {%endif%}
 
 <form action="." method="post">{{ form.csrf_token }}
-{{ form.wordlist.name }}  {{ form.wordlist() }}<p>
-{{ form.from_english.name }}  {{ form.from_english() }}<br>
-{{ form.randomize.name }}  {{ form.randomize() }}<br>
-{{ form.provide_choices.name }}  {{ form.provide_choices() }}<br>
-{{ form.segment.name }}  {{ form.segment() }}<br>
-{{ form.alg.name }}  {{ form.alg() }}<p>
+{{ form.wordlist.label }}  {{ form.wordlist() }}<p>
+{{ form.from_english.label }}  {{ form.from_english() }}<br>
+{{ form.randomize.label }}  {{ form.randomize() }}<br>
+{{ form.provide_choices.label }}  {{ form.provide_choices() }}<br>
+{{ form.segment.label }}  {{ form.segment() }}<br>
+{{ form.alg.label }}  {{ form.alg() }}<p>
 <input type="submit" value="Submit" />
 <input type="submit" value="List all words" name="do_list_words" />
 </form>

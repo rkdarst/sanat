@@ -49,7 +49,7 @@ class SelectorForm(Form):
     randomize = BooleanField(default=False)
     provide_choices = BooleanField('Provide hints?', default=False)
     segment = SelectField(default=False)
-    alg = SelectField()
+    alg = SelectField("Memorization algorithm")
     do_list_words = BooleanField(default=False)
 
 listrunner_store = { }
