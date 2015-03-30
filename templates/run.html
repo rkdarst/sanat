@@ -9,9 +9,9 @@
 {% block content %}
 <font size="+2">
 
-{% if diff %}
-[{{lastquestion}}: &nbsp;&nbsp; diff:
-{{ diff.0|safe }} &rarr; {{ diff.1|safe }}]
+{% if not results.correct %}
+[{{lastquestion}}={{results.full_answer}}]<br>
+[{{ results.diff.0|safe }} &rarr; {{ results.diff.1|safe }} ]
 <br>
 {% endif %}
 

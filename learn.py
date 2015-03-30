@@ -20,6 +20,7 @@ from wtforms import Form, BooleanField, TextField, PasswordField, \
 from flask_wtf import Form
 
 import ask_algs
+import util
 
 # configuration
 worddir = '/srv/learn/data/'
@@ -40,20 +41,9 @@ app.config.from_object(__name__)
 application = app
 
 
-def get_wordfiles():
-    wordfiles = tuple((f, f) for f in sorted(
-        x for x in os.listdir(worddir)
-        if not (x.endswith('~')
-                or x.startswith('.')
-                or x.startswith('#'))
-        ))
-    return wordfiles
-def wordfile_filename(fname):
-    return worddir+fname
-
 
 class SelectorForm(Form):
-    wordlist = SelectField(choices=get_wordfiles())
+    wordlist = SelectField(choices=util.get_wordfiles())
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(default=True)
     randomize = BooleanField(default=False)
@@ -65,7 +55,7 @@ listrunner_store = { }
 
 @app.route('/', methods=('GET', 'POST'))
 def select():
-    SelectorForm.wordlist.choices = get_wordfiles()
+    SelectorForm.wordlist.choices = util.get_wordfiles()
     form = SelectorForm(request.form)
 
     # Compute options for segments (0-24, 25-30, etc)
@@ -103,7 +93,7 @@ class RunForm(Form):
 @app.route('/run/', methods=('GET', 'POST'))
 def run():
     runner, creation_time = listrunner_store[session['id']]
-    diff = None
+    results = dict(correct=True)
     lastquestion = None
     newword_data = None
 
@@ -114,7 +104,7 @@ def run():
         answer = form.answer.data
         if u'ignore' in form.data:
             runner.ignore(question)
-        diff = runner.answer(question, answer)
+        results = runner.answer(question, answer)
     else:
         pass
     newword, newword_data = runner.question()
@@ -126,50 +116,9 @@ def run():
 
     session.modified = True
     return render_template('run.html',
-                           form=form, diff=diff, newword=newword,
+                           form=form, results=results, newword=newword,
                            lastquestion=lastquestion,
                            newword_data=newword_data)
-
-
-def makediff(s1, s2):
-    """Diff two shifts, returning new two-string diff."""
-    import difflib
-    differ = difflib.SequenceMatcher()
-    differ.set_seqs(s1, s2)
-    #debug = False
-    #if s2 == "Allie//1200/Ruth//1700/Harstrick":
-    #    debug = True
-    #for op, i1, i2, j1, j2 in reversed(differ.get_opcodes()):
-    #if debug: print "start"
-    s1new = [ ]
-    s2new = [ ]
-    previousOp = None
-    for op, i1, i2, j1, j2 in differ.get_opcodes():
-        #if debug: print "top"
-        #if debug: print op, i1, i2, j1, j2, '->'
-        #if debug: print s1, s2
-        if op == 'equal':
-            if i2-i1 < 4 and len(s1new) > 1 and previousOp == "replace":
-                s1new[-2] += s1[i1:i2]
-                s2new[-2] += s2[j1:j2]
-            else:
-                s1new.append(Markup(s1[i1:i2]))
-                s2new.append(Markup(s2[j1:j2]))
-        elif op == 'insert':
-            s2new.extend(('<b>', Markup(s2[j1:j2]), '</b>'))
-        elif op == "delete":
-            s1new.extend(('<strike>', Markup(s1[i1:i2]), '</strike>'))
-        elif op == 'replace':
-            s1new.extend(('<strike>', Markup(s1[i1:i2]), '</strike>'))
-            s2new.extend(('<b>', Markup(s2[j1:j2]), '</b>'))
-        previousOp = op
-        #if debug: print s1, s2
-        #if debug: print "bottom"
-    #if debug: print "done"
-    return ''.join(s1new), ''.join(s2new)
-
-
-
 
 
 

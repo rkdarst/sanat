@@ -4,20 +4,25 @@ import random
 import re
 
 import learn
+import util
 
-
-class ListRunner(object):
-    shingle_data = { }
+class _ListRunner(object):
     def __str__(self):
         return 'ListRunner(%s)'%self.wordlist
     __repr__ = __str__
-    def __init__(self, wordlist, from_english=False,
-                 randomize=False, provide_choices=False, segment='all'):
+    def __init__(self, wordlist, **kwargs):
+
+        self.shingle_data = { }
+        self.load_wordlist(wordlist, **kwargs)
+
+
+    def load_wordlist(self, wordlist, from_english=False,
+                      randomize=False, provide_choices=False, segment='all'):
         #print "init ListRunner", wordlist
         self.wordlist = wordlist
-        data = open(learn.wordfile_filename(wordlist)).read().decode('utf-8').split('\n')
+        data = open(util.wordfile_filename(wordlist)).read().decode('utf-8').split('\n')
         # Check if original file is reversed
-        if '###reversed' in open(learn.wordfile_filename(wordlist)).read(512):
+        if '###reversed' in open(util.wordfile_filename(wordlist)).read(512):
             from_english = not from_english
         #
         data = [ l.strip() for l in data ]
@@ -31,8 +36,9 @@ class ListRunner(object):
         # word is answer.
         if from_english:
             words = [ (y,x) for (x,y) in words ]
-        # Remove parenthesized groups from answers.
-        words = [ (q, re.sub('\([^)]*\)', '', a).strip())
+        # Remove parenthesized groups from answers.  Leave original
+        # answer on the end.
+        words = [ (q, re.sub('\([^)]*\)', '', a).strip(), a)
                   for q,a in words ]
         # Store all_data to use for shingling below
         all_words = words
@@ -59,17 +65,11 @@ class ListRunner(object):
                                                     n=3)
         # Done with preprocessing.  Create standard data structures.
         self.words = words
-        self.questions = [ q for (q,v) in words ]
-        self.answers = [ v for (q,v) in words ]
-        #print self.answers
-        #print self.answers
-        self.lookup = dict(words)
-        self.wordstat = dict([ (q, dict(r=0, w=0, hist=[], last=None))
-                               for (q,v) in words ])
-        self.count = 0
-        self.countSecondRound = None
+        self.questions, self.answers, self.answers_full = zip(*words)
+
+        self.lookup = dict((q, (a, fa)) for (q,a,fa) in words)
     def question(self):
-        nextword = self._question_0()
+        nextword = self._next_question()
         if nextword == StopIteration:
             return StopIteration, {}
         nextword_answer = self.lookup[nextword]
@@ -93,7 +93,32 @@ class ListRunner(object):
             choices = list(choices)
             random.shuffle(choices)
         return nextword, dict(choices=choices)
-    def _question_0(self):
+    def answer(self, question, answer):
+        correct = self.lookup[question][0].lower() == answer.lower()
+        #print self.wordstat
+        self.wordstat[question]['hist'].append(correct)
+        if correct:
+            self.wordstat[question]['r'] += 1
+            return dict(correct=True)
+        else:
+            self.wordstat[question]['w'] += 1
+            return dict(correct=False,
+                        diff=util.makediff(answer, self.lookup[question][0]),
+                        full_answer=self.lookup[question][1])
+
+
+class ListRunner(_ListRunner):
+    def __init__(self, *args, **kwargs):
+        # super-initialization
+        super(ListRunner, self).__init__(*args, **kwargs)
+
+        self.wordstat = dict([ (q, dict(r=0, w=0, hist=[], last=None))
+                               for q in self.questions ])
+        self.count = 0
+        self.countSecondRound = None
+
+
+    def _next_question(self):
         count = self.count
         self.count += 1
         for j in range(len(self.questions)):
@@ -144,13 +169,4 @@ class ListRunner(object):
         #i += 1
         #print self.i
         return nextword
-    def answer(self, question, answer):
-        correct = self.lookup[question].lower() == answer.lower()
-        #print self.wordstat
-        self.wordstat[question]['hist'].append(correct)
-        if correct:
-            self.wordstat[question]['r'] += 1
-            return None
-        else:
-            self.wordstat[question]['w'] += 1
-            return makediff(answer, self.lookup[question])
+
