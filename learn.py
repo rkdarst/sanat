@@ -49,7 +49,7 @@ class SelectorForm(Form):
     randomize = BooleanField(default=False)
     provide_choices = BooleanField('Provide hints?', default=False)
     segment = SelectField(default=False)
-    list_words = BooleanField(default=False)
+    do_list_words = BooleanField(default=False)
 
 listrunner_store = { }
 
@@ -77,10 +77,10 @@ def select():
             segment=(segment_size*int(form.segment.data), segment_size*(int(form.segment.data)+1)-1) if form.segment.data!='all' else 'all',
             provide_choices=form.provide_choices.data,
             )
-        listrunner_store[id_] = runner, time.time()
-        if form.list_words.data:
+        if form.do_list_words.data:
             wordpairs = runner.words
             return render_template('select.html', form=form, wordpairs=wordpairs)
+        listrunner_store[id_] = runner, time.time()
         return redirect(url_for('run'))
     return render_template('select.html', form=form)
 
