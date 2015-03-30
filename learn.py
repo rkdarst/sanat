@@ -70,8 +70,8 @@ def select():
 
     # Compute options for segments (0-24, 25-30, etc)
     choices = [('all', 'All'), ]
-    segment_size = 25
-    for i in range(500//segment_size):
+    segment_size = 20
+    for i in range(200//segment_size):
         choices.append((str(i), '% 3d-% 3d'%(segment_size*i, segment_size*(i+1)-1)))
     form.segment.choices = choices
 
