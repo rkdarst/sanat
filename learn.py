@@ -46,7 +46,8 @@ class SelectorForm(Form):
     wordlist = SelectField(choices=util.get_wordfiles())
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(default=True)
-    randomize = BooleanField(default=False)
+    randomize = BooleanField("Randomize fully", default=False)
+    randomize_local = BooleanField("Randomize locally", default=False)
     provide_choices = BooleanField('Provide hints?', default=False)
     segment = SelectField(default=False)
     alg = SelectField("Memorization algorithm")
@@ -73,10 +74,15 @@ def select():
         id_ = random.randint(0, 2**32-1)
         session['id'] = id_
         run_class = ask_algs.get_alg(form.alg.data)
+        randomize = 0
+        if form.randomize_local.data:
+            randomize = 2
+        elif form.randomize.data:
+            randomize = 1
         runner = run_class(
             wordlist,
             from_english=form.from_english.data,
-            randomize=form.randomize.data,
+            randomize=randomize,
             segment=(segment_size*int(form.segment.data), segment_size*(int(form.segment.data)+1)-1) if form.segment.data!='all' else 'all',
             provide_choices=form.provide_choices.data,
             )

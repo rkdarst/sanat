@@ -55,7 +55,7 @@ class _ListRunner(object):
         # if given data segment, only suggest the words from there.
         if segment is not None and segment != 'all':
             words = words[segment[0]: segment[1]]
-        if randomize:
+        if randomize == 2:
             # local randomization
             words2 = [ ]
             words.reverse()
@@ -63,6 +63,9 @@ class _ListRunner(object):
                 i = random.randint(1, min(5, len(words)))
                 words2.append(words.pop(-i))
             words = words2
+        elif randomize:
+            # full randomization
+            random.shuffle(words)
 
         # If asked to provide choices, make shingles and store them
         if provide_choices:
