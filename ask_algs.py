@@ -82,7 +82,7 @@ class _ListRunner(object):
         nextword = self._next_question()
         if nextword == StopIteration:
             return StopIteration, {}
-        nextword_answer = self.lookup[nextword]
+        nextword_answer = self.lookup[nextword][0]
         choices = None
         if self.shingle_data:
             choices = set()
