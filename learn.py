@@ -16,7 +16,8 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask import Markup # html escaping
 
 from wtforms import Form, BooleanField, TextField, PasswordField, \
-     StringField, SelectField, HiddenField, validators
+     StringField, SelectField, SelectMultipleField, HiddenField, \
+     validators
 from flask_wtf import Form
 
 import ask_algs
@@ -49,7 +50,8 @@ class SelectorForm(Form):
     randomize = BooleanField("Randomize fully", default=False)
     randomize_local = BooleanField("Randomize locally", default=False)
     provide_choices = BooleanField('Provide hints?', default=False)
-    segment = SelectField(default=False)
+    #segment = SelectField(default=False)
+    segment = SelectMultipleField(default=False)
     alg = SelectField("Memorization algorithm")
     do_list_words = BooleanField(default=False)
 
@@ -79,11 +81,24 @@ def select():
             randomize = 2
         elif form.randomize.data:
             randomize = 1
+        # segment
+        segment = 'all'
+        if isinstance(form.segment.data, list) and form.segment.data[0] != 'all':
+            # multi-select form
+            segment = [ ]
+            for seg in form.segment.data:
+                seg = int(seg)
+                segment.append((segment_size*seg, segment_size*(seg+1)-1))
+        elif form.segment.data[0] != 'all':
+            # single-select form
+            seg = int(form.segment.data)
+            segment = (segment_size*seg, segment_size*(seg+1)-1)
+        print segment
         runner = run_class(
             wordlist,
             from_english=form.from_english.data,
             randomize=randomize,
-            segment=(segment_size*int(form.segment.data), segment_size*(int(form.segment.data)+1)-1) if form.segment.data!='all' else 'all',
+            segment=segment,
             provide_choices=form.provide_choices.data,
             )
         if form.do_list_words.data:

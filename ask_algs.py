@@ -54,7 +54,15 @@ class _ListRunner(object):
         all_words = words
         # if given data segment, only suggest the words from there.
         if segment is not None and segment != 'all':
-            words = words[segment[0]: segment[1]]
+            if isinstance(segment[0], tuple):
+                # multi-select form
+                words2 = [ ]
+                for seg in segment:
+                    words2.extend(words[seg[0]: seg[1]])
+                words = words2
+            else:
+                # single-select form
+                words = words[segment[0]: segment[1]]
         if randomize == 2:
             # local randomization
             words2 = [ ]
