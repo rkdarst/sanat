@@ -51,7 +51,7 @@ class SelectorForm(Form):
     randomize_local = BooleanField("Randomize locally", default=False)
     provide_choices = BooleanField('Provide hints?', default=False)
     #segment = SelectField(default=False)
-    segment = SelectMultipleField(default=False)
+    segment = SelectMultipleField(choices=[('all', 'All'), ], default=['all'])
     alg = SelectField("Memorization algorithm")
     do_list_words = BooleanField(default=False)
 
