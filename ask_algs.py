@@ -1,5 +1,6 @@
 # Richard Darst, 2015
 
+import itertools
 import random
 import re
 
@@ -181,6 +182,88 @@ class Original(_ListRunner):
                 # at least last two times.
                 stat['last'] = count
                 return word
+
+        return StopIteration
+        #nextword = self.questions[self.i]
+        #self.i += 1
+        #global i
+        #nextword = self.questions[i]
+        #i += 1
+        #print self.i
+        return nextword
+
+
+class V2(_ListRunner):
+    def __init__(self, *args, **kwargs):
+        # super-initialization
+        super(V2, self).__init__(*args, **kwargs)
+
+        self.wordstat = dict([ (q, dict(r=0, w=0, hist=[], last=0))
+                               for q in self.questions ])
+        self.nwords = len(self.questions)
+        self.i = 0
+        self.next = 0
+        self.countSecondRound = None
+
+
+    def _next_question(self):
+        i = count = self.i
+        self.i += 1
+        for j in range(self.next, -1, -1):
+        #for j in range(len(self.questions)):
+            word = self.questions[j]
+            stat = self.wordstat[word]
+
+            # What is the current status of this word?
+            n_times_right = sum(1 for _ in
+                 itertools.takewhile(lambda x: x, reversed(stat['hist'])))
+            if n_times_right > 4:
+                continue
+            # delay size
+            delay_size = n_times_right
+            print i, n_times_right, delay_size, stat['last'], stat
+            if i >= stat['last'] + delay_size:
+                stat['last'] = i
+                return word
+
+        #word = 
+
+            #if stat['last'] == count-1 and not j==len(self.questions)-1:
+            #    # CONTINUE if presented last time, only if we aren't out.
+            #    continue
+            #if len(stat['hist']) == 0:
+            #    # if never been presented before
+            #    stat['last'] = count
+            #    return word
+            #if not stat['hist'][-1]:
+            #    # if not correct on the last round
+            #    stat['last'] = count
+            #    return word
+            #if stat['last'] <= count-2 and not all(stat['hist'][-2:]):
+            #    # get it right at least the last two times
+            #    stat['last'] = count
+            #    return word
+        if self.countSecondRound is None:
+            self.countSecondRound = count
+        # Go through again and ensure:
+        # - every word answered correct at least twice on the last round
+        # - every word answered once in second round.
+        #for j in range(len(self.questions)):
+        #    word = self.questions[j]
+        #    stat = self.wordstat[word]
+        #    if stat['last'] == count-1 and not j==len(self.questions)-1:
+        #        # CONTINUE if presented last time, only if we aren't out.
+        #        # Same condition on previous one.
+        #        continue
+        #    if not stat['hist'][-1]:
+        #        # if not correct on the last round, do it again.
+        #        stat['last'] = count
+        #        return word
+        #    if len(stat['hist']) < 2 or stat['last'] < self.countSecondRound:
+        #        # Been seen at least once on second round, and correct
+        #        # at least last two times.
+        #        stat['last'] = count
+        #        return word
 
         return StopIteration
         #nextword = self.questions[self.i]
