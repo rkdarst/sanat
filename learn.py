@@ -34,6 +34,7 @@ if __name__ == '__main__':
     DEBUG = True
 #USERNAME = 'admin'
 #PASSWORD = 'default'
+SESSION_COOKIE_NAME = 'learn'
 
 # create our little application :)
 app = Flask(__name__)
