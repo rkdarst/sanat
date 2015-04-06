@@ -60,7 +60,10 @@ listrunner_store = { }
 @app.route('/', methods=('GET', 'POST'))
 def select():
     SelectorForm.wordlist.choices = util.get_wordfiles()
-    form = SelectorForm(request.form)
+    # Set default wordlist to the last wordlist used
+    form = SelectorForm(request.form,
+                        **session.get('last_data', {})   # defaults
+                        )
     form.alg.choices = [(name, name) for name in ask_algs.list_algs()]
 
     # Compute options for segments (0-24, 25-30, etc)
@@ -72,7 +75,9 @@ def select():
 
     if form.validate_on_submit():
         wordlist = form.wordlist.data
+        # store defaults so that we can pre-seed the form next time
         session['wordlist'] = wordlist
+        session['last_data'] = form.data
         id_ = random.randint(0, 2**32-1)
         session['id'] = id_
         run_class = ask_algs.get_alg(form.alg.data)
