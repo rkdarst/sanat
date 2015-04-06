@@ -24,7 +24,8 @@ import ask_algs
 import util
 
 # configuration
-worddir = '/srv/learn/data/'
+base_dir = os.path.dirname(os.path.dirname(__file__))
+worddir = os.path.join(base_dir, 'data')
 #DATABASE = '/tmp/flaskr.db'
 secret_fname = os.path.join(os.path.dirname(__file__), 'secret.txt')
 SECRET_KEY = open(secret_fname).read()

@@ -17,7 +17,7 @@ def get_wordfiles():
         ))
     return wordfiles
 def wordfile_filename(fname):
-    return learn.worddir+fname
+    return os.path.join(learn.worddir, fname)
 
 
 def makediff(s1, s2):
