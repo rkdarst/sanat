@@ -24,6 +24,7 @@ import ask_algs
 import util
 
 from config import app, application, worddir
+import models
 
 
 class SelectorForm(Form):
