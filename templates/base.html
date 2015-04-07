@@ -1,0 +1,21 @@
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta charset="utf-8">
+</head>
+
+<body{%block body_tags%}{%endblock%}>
+{% block content %}
+
+{% endblock content %}
+
+{% if g.user %}
+<p>Logged in as {{g.user}}</p>
+{% else %}
+{#<a href="{{url_for('login')}}">Login</a>#}
+{% endif%}
+
+</body>
+
+</html>
