@@ -5,6 +5,7 @@ import random
 import re
 
 import learn
+import config
 import util
 
 def list_algs():
@@ -31,11 +32,12 @@ class _ListRunner(object):
                       randomize=False, provide_choices=False, segment='all'):
         #print "init ListRunner", wordlist
         self.wordlist = wordlist
-        data = open(util.wordfile_filename(wordlist)).read().decode('utf-8').split('\n')
+        data = config.get_wordfile(wordlist)
         # Check if original file is reversed
-        if '###reversed' in open(util.wordfile_filename(wordlist)).read(512):
+        if '###reversed' in data[:512]:
             from_english = not from_english
         #
+        data = data.split('\n')
         data = [ l.strip() for l in data ]
         data = [ l for l in data if l and not l.startswith('#') ]
         # Split data into words, do basic pre-processing

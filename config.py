@@ -24,3 +24,9 @@ app = Flask('learn')
 app.config.from_object(__name__)
 
 application = app
+
+# Arrange our file readers
+import util
+Reader = util.MultiReader([util.DirFileReader(worddir)])
+list_wordfiles = Reader.list
+get_wordfile = Reader.get

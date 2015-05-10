@@ -21,14 +21,14 @@ from wtforms import Form, BooleanField, TextField, PasswordField, \
 from flask_wtf import Form
 
 import ask_algs
-import util
 
 from config import app, application, worddir
+import config
 import models
 
 
 class SelectorForm(Form):
-    wordlist = SelectField(choices=util.get_wordfiles())
+    wordlist = SelectField(choices=config.list_wordfiles())
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(default=True)
     randomize = BooleanField("Randomize fully", default=False)
@@ -43,7 +43,7 @@ listrunner_store = { }
 
 @app.route('/', methods=('GET', 'POST'))
 def select():
-    SelectorForm.wordlist.choices = util.get_wordfiles()
+    SelectorForm.wordlist.choices = config.list_wordfiles()
     # Set default wordlist to the last wordlist used
     form = SelectorForm(request.form,
                         **session.get('last_data', {})   # defaults

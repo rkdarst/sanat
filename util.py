@@ -4,20 +4,40 @@ import os
 
 from flask import Markup # html escaping
 
-import learn
+class MultiReader(object):
+    def __init__(self, readers):
+        self.readers = readers
+    def list(self):
+        filelist = set()
+        for R in self.readers:
+            filelist.update(R.list())
+        return tuple((x,x) for x in sorted(filelist))
+    def get(self, fname):
+        for R in self.readers:
+            try:
+                return R.get(fname)
+            except ValueError:
+                pass
+        raise ValueError("File %s not found in any reader"%fname)
+class DirFileReader(object):
+    """Object retrieving word files stored in a directory"""
+    def __init__(self, dirname):
+        self.dirname = dirname
 
-def get_wordfiles():
-    wordfiles = tuple((f, f) for f in sorted(
-        x for x in os.listdir(learn.worddir)
-        if not (x.endswith('~')
-                or x.startswith('.')
-                or x.startswith('#')
-                or 'README' in x
-                or x.startswith('_'))
-        ))
-    return wordfiles
-def wordfile_filename(fname):
-    return os.path.join(learn.worddir, fname)
+    def list(self):
+        wordfiles = tuple(x for x in os.listdir(self.dirname)
+                          if not (x.endswith('~')
+                                  or x.startswith('.')
+                                  or x.startswith('#')
+                                  or 'README' in x
+                                  or x.startswith('_'))
+                          )
+        return wordfiles
+    def get(self, fname):
+        fname_ = os.path.join(self.dirname, fname)
+        if not os.path.exists(fname_):
+            raise ValueError()
+        return open(fname_).read().decode('utf-8')
 
 
 def makediff(s1, s2):
