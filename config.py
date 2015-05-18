@@ -13,11 +13,27 @@ secret_fname = os.path.join(os.path.dirname(__file__), 'secret.txt')
 SECRET_KEY = open(secret_fname).read()
 #if os.path.exists(os.path)
 #SECRET_KEY = 'tnaou64oatn!#%>ntao64\ue7!$%$%@!ouiuueau'
-if __name__ == '__main__':
+import __main__
+if getattr(__main__, '__file__', None) == "run.py": #__name__ == '__main__':
     DEBUG = True
 #USERNAME = 'admin'
 #PASSWORD = 'default'
 SESSION_COOKIE_NAME = 'learn'
+
+SQLALCHEMY_DATABASE_URI = 'sqlite:///learn1.sqlite'
+USER_APP_NAME        = "Learn"                # Used by email templates
+
+# Mail info, for flask-user
+#MAIL_USERNAME = 'rkd@zgib.net'
+#MAIL_PASSWORD = ''
+MAIL_DEFAULT_SENDER = 'learn <rkd+learn@zgib.net>'
+#MAIL_SERVER = 'localhost'
+#MAIL_PORT = 465
+#MAIL_USE_SSL = True
+#MAIL_USE_TLS = False
+#USER_ENABLE_EMAIL = False
+
+
 
 # create our little application :)
 app = Flask('learn')

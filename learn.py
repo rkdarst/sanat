@@ -14,6 +14,7 @@ sys.path.append('/srv/learn/pymod/')
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
 from flask import Markup # html escaping
+from flask_user import login_required, UserManager, UserMixin, SQLAlchemyAdapter
 
 from wtforms import Form, BooleanField, TextField, PasswordField, \
      StringField, SelectField, SelectMultipleField, HiddenField, \
@@ -133,8 +134,12 @@ def run():
                            lastquestion=lastquestion,
                            newword_data=newword_data)
 
+@app.route("/login")
+@login_required
+def login():
+    return "%s"%getattr(g, 'user', None)
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=5001)
 

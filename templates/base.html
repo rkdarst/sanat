@@ -10,12 +10,14 @@
 
 {% endblock content %}
 
-{% if g.user %}
-<p>Logged in as {{g.user}}</p>
+<div style="border:1px solid black;">
+<p>Logged in as {{current_user}}</p>
+{% if current_user.user %}
 {% else %}
-{#<a href="{{url_for('login')}}">Login</a>#}
+<a href="{{url_for('user.login')}}">Login</a>
+<a href="{{url_for('user.logout')}}">Logout</a>
 {% endif%}
-
+</div>
 </body>
 
 </html>
