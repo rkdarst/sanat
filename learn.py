@@ -12,6 +12,8 @@ sys.path.append(os.path.dirname(__file__))
 #sys.path.append('/srv/learn/pymod/')
 sys.path.append('/mnt/data1/srv/learn/venv/lib/python2.7/site-packages/')
 
+
+import flask
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
 from flask import Markup # html escaping
@@ -108,6 +110,10 @@ class RunForm(Form):
 
 @app.route('/run/', methods=('GET', 'POST'))
 def run():
+    if session['id'] not in listrunner_store:
+        flask.flash("Your stored ListRunner session has been lost (server restarted).")
+        return redirect(url_for('select'))
+
     runner, creation_time = listrunner_store[session['id']]
     results = dict(correct=True)
     lastquestion = None

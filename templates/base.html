@@ -6,17 +6,26 @@
 </head>
 
 <body{%block body_tags%}{%endblock%}>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
 {% block content %}
 
 {% endblock content %}
 
 <div style="border:1px solid black;">
 <p>Logged in as {{current_user}}</p>
-{% if current_user.user %}
-{% else %}
+<a href="{{ url_for('select')}}">Main page</a>
 <a href="{{url_for('user.login')}}">Login</a>
 <a href="{{url_for('user.logout')}}">Logout</a>
-{% endif%}
 </div>
 </body>
 

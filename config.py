@@ -41,6 +41,17 @@ app.config.from_object(__name__)
 
 application = app
 
+ADMINS = ['rkd@zgib.net']
+if not app.debug:
+    import logging
+    from logging.handlers import SMTPHandler
+    mail_handler = SMTPHandler('127.0.0.1',
+                               'rkd@zgib.net',
+                               ADMINS, 'Exception: learn')
+    mail_handler.setLevel(logging.ERROR)
+    app.logger.addHandler(mail_handler)
+
+
 # Arrange our file readers
 import util
 Reader = util.MultiReader([util.DirFileReader(worddir)])
