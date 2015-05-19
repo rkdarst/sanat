@@ -9,7 +9,8 @@ import time
 
 import sys
 sys.path.append(os.path.dirname(__file__))
-sys.path.append('/srv/learn/pymod/')
+#sys.path.append('/srv/learn/pymod/')
+sys.path.append('/mnt/data1/srv/learn/venv/lib/python2.7/site-packages/')
 
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash

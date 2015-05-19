@@ -20,7 +20,7 @@ if getattr(__main__, '__file__', None) == "run.py": #__name__ == '__main__':
 #PASSWORD = 'default'
 SESSION_COOKIE_NAME = 'learn'
 
-SQLALCHEMY_DATABASE_URI = 'sqlite:///learn1.sqlite'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///db/learn1.sqlite'
 USER_APP_NAME        = "Learn"                # Used by email templates
 
 # Mail info, for flask-user
