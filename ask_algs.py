@@ -26,6 +26,7 @@ class _ListRunner(object):
 
         self.shingle_data = { }
         self.load_wordlist(wordlist, **kwargs)
+        self.session_id = random.randint(0, 2**32-1)
 
 
     def load_wordlist(self, wordlist, from_english=False,
@@ -33,6 +34,7 @@ class _ListRunner(object):
         #print "init ListRunner", wordlist
         self.wordlist = wordlist
         data = config.get_wordfile(wordlist)
+        self.list_id = hash(wordlist)
         # Check if original file is reversed
         if '###reversed' in data[:512]:
             from_english = not from_english
@@ -123,10 +125,12 @@ class _ListRunner(object):
         self.wordstat[question]['hist'].append(correct)
         if correct:
             self.wordstat[question]['r'] += 1
-            return dict(correct=True)
+            return dict(correct=1,
+                        q=question, a=answer, c=self.lookup[question][0].lower())
         else:
             self.wordstat[question]['w'] += 1
-            return dict(correct=False,
+            return dict(correct=0,
+                        q=question, a=answer, c=self.lookup[question][0].lower(),
                         diff=util.makediff(answer, self.lookup[question][0]),
                         full_answer=self.lookup[question][1])
 

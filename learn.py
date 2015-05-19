@@ -15,6 +15,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
 from flask import Markup # html escaping
 from flask_user import login_required, UserManager, UserMixin, SQLAlchemyAdapter
+from flask.ext.login import current_user #.get_id()
 
 from wtforms import Form, BooleanField, TextField, PasswordField, \
      StringField, SelectField, SelectMultipleField, HiddenField, \
@@ -119,6 +120,16 @@ def run():
         if u'ignore' in form.data:
             runner.ignore(question)
         results = runner.answer(question, answer)
+
+        A = models.Answer(uid=current_user.get_id(),
+                          sid=runner.session_id,
+                          lid=runner.list_id,
+                          q=results['q'],
+                          a=results['a'],
+                          c=results['c'],
+                          correct=results['correct'])
+        models.db.session.add(A)
+        models.db.session.commit()
     else:
         pass
     newword, newword_data = runner.question()

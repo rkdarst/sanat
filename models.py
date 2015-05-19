@@ -1,5 +1,7 @@
 # Richard Darst, April 2015
 
+import datetime
+
 from flask import Flask
 #from flask.ext.sqlalchemy import SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
@@ -28,16 +30,26 @@ class User(db.Model, UserMixin):
     first_name = db.Column(db.String(100), nullable=False, server_default='')
     last_name = db.Column(db.String(100), nullable=False, server_default='')
 
-    #def __init__(self, username, email, password, **kwargs):
-    #    super(User, self).__init__(username=username, email=email, **kwargs)
-    #    self.username = username
-    #    self.email = email
-    #    self.password = password
+    roles = db.relationship('Role', secondary='user_roles',
+                            backref=db.backref('users', lazy='dynamic'))
+
     def __repr__(self):
         return '<User %r>' % self.username
     def get_id(self):
         return self.uid
 
+# Define the Role DataModel
+class Role(db.Model):
+    __tablename__ = 'role'
+    role_id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50), unique=True)
+
+# Define the UserRoles DataModel
+class UserRoles(db.Model):
+    __tablename__ = 'user_roles'
+    id = db.Column(db.Integer(), primary_key=True)
+    uid = db.Column(db.Integer(), db.ForeignKey('user.uid', ondelete='CASCADE'))
+    role_id = db.Column(db.Integer(), db.ForeignKey('role.role_id', ondelete='CASCADE'))
 
 class UserAttributes(db.Model):
     __tablename__ = 'user_attributes'
@@ -53,19 +65,23 @@ class Answer(db.Model):
     uid = db.Column(db.Integer, db.ForeignKey('user.uid'))
     #uid = db.relationship(User, backref='answers', lazy='dynamic')
     sid = db.Column(db.Integer)                   # session ID
-    ts = db.Column(db.DateTime)
+    lid = db.Column(db.Integer)                   # list ID
+    ts = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     q = db.Column(db.String(256))
     a = db.Column(db.String(256))
-    correct = db.Column(db.Boolean)
+    c = db.Column(db.String(256))
+    correct = db.Column(db.Float)
 
 
 class Hint(db.Model):
     __tablename__ = 'hint'
     hid = db.Column(db.Integer, primary_key=True)
+    ts = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     uid = db.Column(db.Integer, db.ForeignKey('user.uid'))
     #uid = db.relationship(User, backref='answers', lazy='dynamic')
-    ts = db.Column(db.DateTime)
-    text = db.Column(db.String(256))
+    lid = db.Column(db.Integer)                   # list ID
+    q = db.Column(db.String(256))
+    hint = db.Column(db.String(256))
 
 db.create_all()
 db_adapter = SQLAlchemyAdapter(db, User)        # Register the User model
