@@ -82,11 +82,11 @@ def select():
             segment = [ ]
             for seg in form.segment.data:
                 seg = int(seg)
-                segment.append((segment_size*seg, segment_size*(seg+1)-1))
+                segment.append((segment_size*seg, segment_size*(seg+1)))
         elif form.segment.data[0] != 'all':
             # single-select form
             seg = int(form.segment.data)
-            segment = (segment_size*seg, segment_size*(seg+1)-1)
+            segment = (segment_size*seg, segment_size*(seg+1))
         print segment
         runner = run_class(
             wordlist,
