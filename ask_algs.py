@@ -8,6 +8,8 @@ import learn
 import config
 import util
 
+import flask
+
 def list_algs():
     """List all memorization argorithms available"""
     return sorted(name for name, obj in globals().iteritems()
@@ -91,10 +93,16 @@ class _ListRunner(object):
                                                     n=3)
         # Done with preprocessing.  Create standard data structures.
         self.words = words
-        self.questions, self.answers, self.answers_full = zip(*words)
+        if len(words) != 0:
+            self.questions, self.answers, self.answers_full = zip(*words)
+        else:
+            self.questions = self.answers = self.answers_full = [ ]
 
         self.lookup = dict((q, (a, fa)) for (q,a,fa) in words)
     def question(self):
+        if len(self.words) == 0:
+            flask.flash("There are no words in this list.")
+            return StopIteration, {}
         nextword = self._next_question()
         if nextword == StopIteration:
             return StopIteration, {}
