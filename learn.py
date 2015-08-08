@@ -113,7 +113,7 @@ class RunForm(Form):
 
 @app.route('/run/', methods=('GET', 'POST'))
 def run():
-    if session['id'] not in listrunner_store:
+    if 'id' not in session or session['id'] not in listrunner_store:
         flask.flash("Your stored ListRunner session has been lost (server restarted).")
         return redirect(url_for('select'))
 
