@@ -43,6 +43,7 @@ class SelectorForm(Form):
     segment = SelectMultipleField(choices=[('all', 'All'), ], default=['all'])
     alg = SelectField("Memorization algorithm")
     do_list_words = BooleanField(default=False)
+    do_stats = BooleanField(default=False)
 
 listrunner_store = { }
 
@@ -98,6 +99,8 @@ def select():
         if form.do_list_words.data:
             wordpairs = runner.words
             return render_template('select.html', form=form, wordpairs=wordpairs)
+        if form.do_stats.data:
+            return stats(runner)
         listrunner_store[id_] = runner, time.time()
         return redirect(url_for('run'))
     return render_template('select.html', form=form)
@@ -151,6 +154,63 @@ def run():
                            form=form, results=results, newword=newword,
                            lastquestion=lastquestion,
                            newword_data=newword_data)
+
+#@app.route('/stats/', methods=('GET', 'POST'))
+def stats(runner):
+    from sqlalchemy import func
+    stats = [ ]
+    header = ["Q", "A", "delay", "delay2"]
+    uid = current_user.get_id()
+    #raise ValueError
+    #stats = models.db.session.query(models.Answer.q, models.Answer.c, func.count('*')).group_by(models.Answer.q)
+    for q in runner.questions:
+        q1 = models.Answer.query.filter_by(q=q,uid=uid).filter(models.Answer.correct==1).order_by('ts desc').limit(5).subquery()
+        q2 = models.Answer.query.filter_by(q=q,uid=uid).filter(models.Answer.correct!=1).order_by('ts desc').limit(5).subquery()
+        As = models.db.session.query(models.Answer).select_from(models.db.union_all(q1.select(), q2.select()))\
+             .order_by('anon_1.ts desc').all()
+        #print models.db.session.query(models.Answer).select_from(models.db.union_all(q1.select(), q2.select()))\
+        #     .order_by('ts desc')
+        #print
+        #x = models.Answer.query.filter(models.Answer.correct!=1).limit(5).subquery().union(
+        #    models.Answer.query.filter(models.Answer.correct!=1).limit(5).subquery()).order_by(models.Answer.ts).all()
+        #print As
+
+        # most recent correct answers
+        x = models.db.session.execute("select max(a1.ts), max(a2.ts) from answer a1 join answer a2 using(q,uid) where a1.ts>a2.ts and q=:q and uid=:uid", dict(q=q, uid=uid))
+        x = list(x)[0]
+        import datetime
+        #print x
+        if x[0] is None or x[1] is None:
+            delay = None
+        else:
+            x1 = datetime.datetime.strptime(x[0], '%Y-%m-%d %H:%M:%S.%f')
+            x2 = datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S.%f')
+            delay = (x1-x2).total_seconds()
+
+        # correct calculation of most recent correct answers
+        delay2 = 0
+        _t1 = None
+        As.sort(key=lambda x: x.ts, reverse=True)
+        #for A in As:
+        #    print A.q, A.ts, A.correct
+        for A in As:
+            #print A.q, A.ts
+            if A.correct != 1:
+                break
+            if _t1 is not None:
+                delay2 = (_t1 - A.ts).total_seconds()
+                break
+            _t1 = A.ts
+
+        x = models.db.session.execute("select max(ts), count(correct), sum(correct) FROM answer WHERE q=:q and uid=:uid GROUP BY sid ORDER BY max(ts) DESC", dict(q=q, uid=uid))
+        goodness = [row[2]/float(row[1]) for row in x ]
+
+        if len(As) > 0:
+            stats.append((As[0].q, As[0].c, delay, delay2, goodness))
+        else:
+            stats.append((q, ))
+
+    return render_template('stats.html', header=header, stats=stats)
 
 @app.route("/login")
 @login_required

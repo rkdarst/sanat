@@ -86,3 +86,11 @@ class Hint(db.Model):
 db.create_all()
 db_adapter = SQLAlchemyAdapter(db, User)        # Register the User model
 user_manager = UserManager(db_adapter, app)     # Initialize Flask-User
+
+# loadable extensions
+#engine = db.engine
+#from sqlalchemy import event, create_engine
+#@event.listens_for(engine, "connect")
+#def connect(dbapi_connection, connection_rec):
+#    dbapi_connection.enable_load_extension(True)
+#    dbapi_connection.load_extension("./libsqlitefunctions.so")
