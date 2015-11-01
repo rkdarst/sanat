@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<table border="1">
+<tr>
+{% for item in header %}
+   <td>{{ item }}</td>
+{% endfor %}
+</tr>
+
+{% for row in stats %}
+<tr>
+{% for item in row %}
+   <td>{{ item }}</td>
+{% endfor %}
+</tr>
+{%endfor%}
+</table>
+
+{% endblock content %}
