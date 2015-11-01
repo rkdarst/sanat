@@ -1,0 +1,9 @@
+
+Failure modes
+-------------
+- Have no idea (blank or random guess)
+- Can remember, but misspelled
+- Entered the previous word instead of this one
+- Remembering is dependent on the order presented
+- Too many words told between two instances of the same word.
+- Only consider the first trial per word on each round.
