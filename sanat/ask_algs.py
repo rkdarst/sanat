@@ -3,16 +3,17 @@
 import itertools
 import random
 import re
+import six
+from six import iteritems
 
-import learn
-import config
-import util
+#import learn
+from . import config
+from . import util
 
-import flask
 
 def list_algs():
     """List all memorization argorithms available"""
-    return sorted(name for name, obj in globals().iteritems()
+    return sorted(name for name, obj in iteritems(globals())
                   if isinstance(obj, type)
                      if issubclass(obj, _ListRunner)
                      and not obj==_ListRunner )
@@ -235,7 +236,7 @@ class V2(_ListRunner):
                 continue
             # delay size
             delay_size = n_times_right
-            print i, n_times_right, delay_size, stat['last'], stat
+            print(i, n_times_right, delay_size, stat['last'], stat)
             if i >= stat['last'] + delay_size:
                 stat['last'] = i
                 return word

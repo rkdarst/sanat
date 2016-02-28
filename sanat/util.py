@@ -2,7 +2,7 @@
 
 import os
 
-from flask import Markup # html escaping
+#from flask import Markup # html escaping
 
 class MultiReader(object):
     def __init__(self, readers):
@@ -37,7 +37,7 @@ class DirFileReader(object):
         fname_ = os.path.join(self.dirname, fname)
         if not os.path.exists(fname_):
             raise ValueError()
-        return open(fname_).read().decode('utf-8')
+        return open(fname_).read()
 
 
 def makediff(s1, s2):

@@ -7,47 +7,51 @@ import re
 import sqlite3
 import time
 
-import sys
-sys.path.append(os.path.dirname(__file__))
+#import sys
+#sys.path.append(os.path.dirname(__file__))
 #sys.path.append('/srv/learn/pymod/')
-sys.path.append('/mnt/data1/srv/learn/venv/lib/python2.7/site-packages/')
+#sys.path.append('/mnt/data1/srv/learn/venv/lib/python2.7/site-packages/')
 
 
-import flask
-from flask import Flask, request, session, g, redirect, url_for, \
-     abort, render_template, flash
-from flask import Markup # html escaping
-from flask_user import login_required, UserManager, UserMixin, SQLAlchemyAdapter
-from flask.ext.login import current_user #.get_id()
+#import flask
+#from flask import Flask, request, session, g, redirect, url_for, \
+#     abort, render_template, flash
+#from flask import Markup # html escaping
+#from flask_user import login_required, UserManager, UserMixin, SQLAlchemyAdapter
+#from flask.ext.login import current_user #.get_id()
 
-from wtforms import Form, BooleanField, TextField, PasswordField, \
-     StringField, SelectField, SelectMultipleField, HiddenField, \
-     validators
-from flask_wtf import Form
+#from wtforms import Form, BooleanField, TextField, PasswordField, \
+#     StringField, SelectField, SelectMultipleField, HiddenField, \
+#     validators
+#from flask_wtf import Form
+#from django.forms import Form
+import django.forms as forms
+from django.forms import Form
+from django.forms import BooleanField,
+     StringField, ChoiceField, MultipleChoicesField, HiddenField
 
 import ask_algs
 
-from config import app, application, worddir
 import config
-import models
+from . import models
 
 
 class SelectorForm(Form):
-    wordlist = SelectField(choices=config.list_wordfiles())
+    wordlist = ChoiceField(choices=config.list_wordfiles())
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(default=True)
     randomize = BooleanField("Randomize fully", default=False)
     randomize_local = BooleanField("Randomize locally", default=False)
     provide_choices = BooleanField('Provide hints?', default=False)
     #segment = SelectField(default=False)
-    segment = SelectMultipleField(choices=[('all', 'All'), ], default=['all'])
-    alg = SelectField("Memorization algorithm")
+    segment = MultipleChoicesField(choices=[('all', 'All'), ], default=['all'])
+    alg = ChoiceField("Memorization algorithm")
     do_list_words = BooleanField(default=False)
     do_stats = BooleanField(default=False)
 
 listrunner_store = { }
 
-@app.route('/', methods=('GET', 'POST'))
+#@app.route('/', methods=('GET', 'POST'))
 def select():
     SelectorForm.wordlist.choices = config.list_wordfiles()
     # Set default wordlist to the last wordlist used
@@ -108,10 +112,10 @@ def select():
 
 
 class RunForm(Form):
-    question = HiddenField()
-    answer = StringField()
+    question = forms.CharField(widget=forms.HiddenWidget)
+    answer = CharField()
 
-@app.route('/run/', methods=('GET', 'POST'))
+#@app.route('/run/', methods=('GET', 'POST'))
 def run():
     if 'id' not in session or session['id'] not in listrunner_store:
         flask.flash("Your stored ListRunner session has been lost (server restarted).")
@@ -212,8 +216,8 @@ def stats(runner):
 
     return render_template('stats.html', header=header, stats=stats)
 
-@app.route("/login")
-@login_required
+#@app.route("/login")
+#@login_required
 def login():
     return "%s"%getattr(g, 'user', None)
 

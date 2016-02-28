@@ -11,9 +11,9 @@
 
 <br>
 
-<form name="run" action="." method="post" autocomplete="off">{{ form.csrf_token }}
-{{ form.question() }}
-<!--{{ newword }} = {{ form.answer() }}<p>-->
+<form name="run" action="." method="post" autocomplete="off">{% csrf_token %}
+{{ form.question }}
+<!--{{ newword }} = {{ form.answer }}<p>-->
 {{ newword }} = <input id="answer" name="answer" type="text" value="" autocomplete="off" autofocus><p>
 {% if newword_data.choices %}
 <font size="-0">hints: {% for hint in newword_data.choices %} {{ hint }} &#151; {% endfor %} </font><p>
