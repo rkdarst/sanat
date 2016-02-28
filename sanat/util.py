@@ -2,7 +2,7 @@
 
 import os
 
-#from flask import Markup # html escaping
+from django.utils.html import escape
 
 class MultiReader(object):
     def __init__(self, readers):
@@ -46,10 +46,6 @@ def makediff(s1, s2):
     differ = difflib.SequenceMatcher()
     differ.set_seqs(s1, s2)
     #debug = False
-    #if s2 == "Allie//1200/Ruth//1700/Harstrick":
-    #    debug = True
-    #for op, i1, i2, j1, j2 in reversed(differ.get_opcodes()):
-    #if debug: print "start"
     s1new = [ ]
     s2new = [ ]
     previousOp = None
@@ -62,15 +58,15 @@ def makediff(s1, s2):
                 s1new[-2] += s1[i1:i2]
                 s2new[-2] += s2[j1:j2]
             else:
-                s1new.append(Markup(s1[i1:i2]))
-                s2new.append(Markup(s2[j1:j2]))
+                s1new.append(escape(s1[i1:i2]))
+                s2new.append(escape(s2[j1:j2]))
         elif op == 'insert':
-            s2new.extend(('<b>', Markup(s2[j1:j2]), '</b>'))
+            s2new.extend(('<b>', escape(s2[j1:j2]), '</b>'))
         elif op == "delete":
-            s1new.extend(('<strike>', Markup(s1[i1:i2]), '</strike>'))
+            s1new.extend(('<strike>', escape(s1[i1:i2]), '</strike>'))
         elif op == 'replace':
-            s1new.extend(('<strike>', Markup(s1[i1:i2]), '</strike>'))
-            s2new.extend(('<b>', Markup(s2[j1:j2]), '</b>'))
+            s1new.extend(('<strike>', escape(s1[i1:i2]), '</strike>'))
+            s2new.extend(('<b>', escape(s2[j1:j2]), '</b>'))
         previousOp = op
         #if debug: print s1, s2
         #if debug: print "bottom"

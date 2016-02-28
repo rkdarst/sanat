@@ -167,13 +167,16 @@ def run(request):
     if newword == StopIteration:
         # Have some handling of the end of process...
         return redirect(url_for('select'))
-    form = RunForm(initial=dict(question=newword, answer=None))
+    form = RunForm(initial=dict(question=newword.serialize(), answer=None))
 
-    session.modified = True
     return render(request, 'run.html',
-                  dict(form=form, results=results, newword=newword,
+                  dict(form=form,
                        lastquestion=lastquestion,
-                       newword_data=newword_data))
+                       results=results,
+                       newword=newword,
+                       question=newword.Q,
+                       newword_data=newword_data
+                       ))
 
 #@app.route('/stats/', methods=('GET', 'POST'))
 def stats(runner):

@@ -10,6 +10,7 @@ from six import iteritems
 from . import config
 from . import util
 
+from django.contrib import messages
 
 def list_algs():
     """List all memorization argorithms available"""
@@ -20,6 +21,52 @@ def list_algs():
 def get_alg(name):
     """Get a memorization algorithm by name"""
     return globals()[name]
+
+def transform_unicode(ans):
+    ans.replace('"a"', u'ä')
+    ans.replace('"A"', u'Ä')
+    ans.replace('"o"', u'ö')
+    ans.replace('"O"', u'Ö')
+    return ans
+class DoNotUseWord(Exception):
+    pass
+class Word(object):
+    def __hash__(self):
+        return hash(self._line)
+    def serialize(self):
+        """Used in wordlist.lookup[]"""
+        return self.Q
+    def __init__(self, line, id=None, reverse=True):
+        self._line = line
+        line = line.strip()
+        if line.startswith('#'):
+            raise DoNotUseWord()
+        # Split data into words, do basic pre-processing
+        words = line.split('\\', 1)
+        if len(words) < 2:
+            raise DoNotUseWord()
+        Q, A = words
+        Q = Q.strip()
+        A = A.strip()
+        if not Q or not A:
+            raise DoNotUseWord()
+        # Swap order if desired.  First word is question and second
+        # word is answer.
+        if reverse:
+            Q, A = A, Q
+        # Remove parenthesized groups from answers.  Leave original
+        # answer on the end.
+        A_orig = A
+        A = re.sub('\([^)]*\)', '', A_orig).strip()
+
+        self.Q = Q
+        self.A = A
+        self.A_orig = A_orig
+
+    def check(self, answer):
+        if transform_unicode(answer.lower()) == self.A.lower():
+            return True
+        return False
 
 class _ListRunner(object):
     def __str__(self):
@@ -43,21 +90,14 @@ class _ListRunner(object):
             from_english = not from_english
         #
         data = data.split('\n')
-        data = [ l.strip() for l in data ]
-        data = [ l for l in data if l and not l.startswith('#') ]
-        # Split data into words, do basic pre-processing
-        words = [ l.split('\\', 1) for l in data ]
-        words = [ x for x in words if len(x) == 2 ]
-        words = [ (x.strip(),y.strip()) for (x,y) in words
-                  if x.strip() and y.strip()]  # ignore words missing a def.
-        # Swap order if desired.  First word is question and second
-        # word is answer.
-        if from_english:
-            words = [ (y,x) for (x,y) in words ]
-        # Remove parenthesized groups from answers.  Leave original
-        # answer on the end.
-        words = [ (q, re.sub('\([^)]*\)', '', a).strip(), a)
-                  for q,a in words ]
+
+        words = [ ]
+        for line in data:
+            try:
+                words.append(Word(line))
+            except DoNotUseWord:
+                pass
+
         # Store all_data to use for shingling below
         all_words = words
         # if given data segment, only suggest the words from there.
@@ -86,35 +126,41 @@ class _ListRunner(object):
         # If asked to provide choices, make shingles and store them
         if provide_choices:
             import shingle
-            self.shingle_data[1] = shingle.Shingler(words=(x[1] for x in all_words),
+            self.shingle_data[1] = shingle.Shingler(words=(x.A for x in all_words),
                                                     n=1)
-            self.shingle_data[2] = shingle.Shingler(words=(x[1] for x in all_words),
+            self.shingle_data[2] = shingle.Shingler(words=(x.A for x in all_words),
                                                     n=2)
-            self.shingle_data[3] = shingle.Shingler(words=(x[1] for x in all_words),
+            self.shingle_data[3] = shingle.Shingler(words=(x.A for x in all_words),
                                                     n=3)
         # Done with preprocessing.  Create standard data structures.
         self.words = words
-        if len(words) != 0:
-            self.questions, self.answers, self.answers_full = zip(*words)
-        else:
-            self.questions = self.answers = self.answers_full = [ ]
+        #if len(words) != 0:
+        #    self.questions, self.answers, self.answers_full = zip(*words)
+        #else:
+        #    self.questions = self.answers = self.answers_full = [ ]
 
-        self.lookup = dict((q, (a, fa)) for (q,a,fa) in words)
+        self.lookup = dict((word.serialize(), word) for word in words)
     def question(self):
+        """Get the next question.
+
+        - Call self._nextword(), which is overridden in subclasses.
+        - Compute shingle data, for hints.
+        - Return (Word, data).  Data should be passed to the form, has hints and so on."""
         if len(self.words) == 0:
-            flask.flash("There are no words in this list.")
+            #messages.add_message(request, messages.INFO, "There are no words in this list.")
+            print("There are no words in this list.")
             return StopIteration, {}
         nextword = self._next_question()
         if nextword == StopIteration:
             return StopIteration, {}
-        nextword_answer = self.lookup[nextword][0]
+        #nextword_answer = self.lookup[hash(nextword)]
         choices = None
         if self.shingle_data:
             choices = set()
             n_choices = 10
             for n in (3, 2, 1):
                 import heapq
-                jaccs = self.shingle_data[n].find_similar(nextword_answer)
+                jaccs = self.shingle_data[n].find_similar(nextword.A)
                 #print n, jaccs
                 while len(choices) < n_choices and jaccs:
                     jacc, hint = heapq.heappop(jaccs)
@@ -129,19 +175,20 @@ class _ListRunner(object):
             random.shuffle(choices)
         return nextword, dict(choices=choices)
     def answer(self, question, answer):
-        correct = self.lookup[question][0].lower() == answer.lower()
+        asked_word = self.lookup[question]
+        correct = asked_word.check(answer)
         #print self.wordstat
-        self.wordstat[question]['hist'].append(correct)
+        self.wordstat[asked_word.serialize()]['hist'].append(correct)
         if correct:
             self.wordstat[question]['r'] += 1
             return dict(correct=1,
-                        q=question, a=answer, c=self.lookup[question][0].lower())
+                        q=question, a=answer, c=self.lookup[question].A_orig.lower())
         else:
             self.wordstat[question]['w'] += 1
             return dict(correct=0,
-                        q=question, a=answer, c=self.lookup[question][0].lower(),
-                        diff=util.makediff(answer, self.lookup[question][0]),
-                        full_answer=self.lookup[question][1])
+                        q=question, a=answer, c=self.lookup[question].A_orig.lower(),
+                        diff=util.makediff(answer, self.lookup[question].A),
+                        full_answer=self.lookup[question].A_orig)
 
 
 class Original(_ListRunner):
@@ -149,8 +196,8 @@ class Original(_ListRunner):
         # super-initialization
         super(Original, self).__init__(*args, **kwargs)
 
-        self.wordstat = dict([ (q, dict(r=0, w=0, hist=[], last=None))
-                               for q in self.questions ])
+        self.wordstat = dict((word.serialize(), dict(r=0, w=0, hist=[], last=None))
+                              for word in self.words )
         self.count = 0
         self.countSecondRound = None
 
@@ -158,10 +205,10 @@ class Original(_ListRunner):
     def _next_question(self):
         count = self.count
         self.count += 1
-        for j in range(len(self.questions)):
-            word = self.questions[j]
-            stat = self.wordstat[word]
-            if stat['last'] == count-1 and not j==len(self.questions)-1:
+        for j in range(len(self.words)):
+            word = self.words[j]
+            stat = self.wordstat[word.serialize()]
+            if stat['last'] == count-1 and not j==len(self.words)-1:
                 # CONTINUE if presented last time, only if we aren't out.
                 continue
             if len(stat['hist']) == 0:
@@ -181,10 +228,10 @@ class Original(_ListRunner):
         # Go through again and ensure:
         # - every word answered correct at least twice on the last round
         # - every word answered once in second round.
-        for j in range(len(self.questions)):
-            word = self.questions[j]
-            stat = self.wordstat[word]
-            if stat['last'] == count-1 and not j==len(self.questions)-1:
+        for j in range(len(self.words)):
+            word = self.words[j]
+            stat = self.wordstat[word.serialize()]
+            if stat['last'] == count-1 and not j==len(self.words)-1:
                 # CONTINUE if presented last time, only if we aren't out.
                 # Same condition on previous one.
                 continue
