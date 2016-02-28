@@ -9,6 +9,7 @@ from six import iteritems
 #import learn
 from . import config
 from . import util
+from . import models
 
 from django.contrib import messages
 
@@ -36,7 +37,7 @@ class Word(object):
     def serialize(self):
         """Used in wordlist.lookup[]"""
         return self.Q
-    def __init__(self, line, id=None, reverse=True):
+    def __init__(self, line, id=None, reverse=True, next_word_id=None):
         self._line = line
         line = line.strip()
         if line.startswith('#'):
@@ -62,6 +63,7 @@ class Word(object):
         self.Q = Q
         self.A = A
         self.A_orig = A_orig
+        self.word_id = next_word_id[0]  ; next_word_id[0] += 1
 
     def check(self, answer):
         if transform_unicode(answer.lower()) == self.A.lower():
@@ -84,7 +86,7 @@ class _ListRunner(object):
         #print "init ListRunner", wordlist
         self.wordlist = wordlist
         data = config.get_wordfile(wordlist)
-        self.list_id = hash(wordlist)
+        self.list_id = hash('file::'+wordlist)
         # Check if original file is reversed
         if '###reversed' in data[:512]:
             from_english = not from_english
@@ -92,9 +94,10 @@ class _ListRunner(object):
         data = data.split('\n')
 
         words = [ ]
+        next_word_id = [ 0 ]  # this is a hack
         for line in data:
             try:
-                words.append(Word(line))
+                words.append(Word(line, next_word_id=next_word_id, reverse=from_english))
             except DoNotUseWord:
                 pass
 
@@ -176,10 +179,21 @@ class _ListRunner(object):
         return nextword, dict(choices=choices)
     def answer(self, question, answer):
         asked_word = self.lookup[question]
-        correct = asked_word.check(answer)
+        is_correct = asked_word.check(answer)
         #print self.wordstat
-        self.wordstat[asked_word.serialize()]['hist'].append(correct)
-        if correct:
+        self.wordstat[asked_word.serialize()]['hist'].append(is_correct)
+
+        try:
+            word_status = models.WordStatus.objects.get(
+                wlid=asked_word.word_id,
+                lid=self.list_id)
+        except models.WordStatus.DoesNotExist:
+            word_status = models.WordStatus(wlid=asked_word.word_id,
+                                            lid=self.list_id)
+        word_status.answer(is_correct)
+        word_status.save()
+
+        if is_correct:
             self.wordstat[question]['r'] += 1
             return dict(correct=1,
                         q=question, a=answer, c=self.lookup[question].A_orig.lower())

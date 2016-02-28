@@ -13,13 +13,13 @@ class WordStatus(models.Model):
     lid = models.IntegerField(null=True, blank=True)    # list ID
     wlid = models.IntegerField(null=True, blank=True)   # word ID within the list
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True)
-    last_ts = models.DateTimeField()
-    last_c_ts = models.DateTimeField()
+    last_ts = models.DateTimeField(auto_now_add=True)
+    last_c_ts = models.DateTimeField(null=True, blank=True)
     last_seq = models.IntegerField()
-    last_c_seq = models.IntegerField()
-    c_short = models.FloatField()   # short term exponential moving average
-    c_med = models.FloatField()     # medium
-    c_long = models.FloatField()    # long
+    last_c_seq = models.IntegerField(null=True, blank=True)
+    c_short = models.FloatField(default=0)   # short term exponential moving average
+    c_med = models.FloatField(default=0)     # medium
+    c_long = models.FloatField(default=0)    # long
 
     def answer(self, is_correct):
         is_correct = int(bool(is_correct))
@@ -29,12 +29,15 @@ class WordStatus(models.Model):
         self.c_short = s*is_correct + (1-s)*self.c_short
         self.c_med   = m*is_correct + (1-m)*self.c_med
         self.c_long  = l*is_correct + (1-l)*self.c_long
-        self.last_ts = timezone.non()
-        if ans:
-            self.last_c_ts = timezone.non()
-        max_seq = self.objects.aggregate(models.Max('last_seq'))['max']
+        self.last_ts = timezone.now()
+        if is_correct:
+            self.last_c_ts = timezone.now()
+        # FIXME: filter this by user.
+        max_seq = self.__class__.objects.aggregate(models.Max('last_seq'))['last_seq__max']
+        if max_seq is None:
+            max_seq = 0
         self.last_seq = max_seq + 1
-        if correct:
+        if is_correct:
             self.last_c_seq = max_seq + 1
 
 class Answer(models.Model):
