@@ -39,6 +39,11 @@ class WordStatus(models.Model):
         self.last_seq = max_seq + 1
         if is_correct:
             self.last_c_seq = max_seq + 1
+    @classmethod
+    def find_last_seq(cls):
+        # FIXME: user
+        max_seq = cls.objects.aggregate(models.Max('last_seq'))['last_seq__max']
+        return max_seq
 
 class Answer(models.Model):
     aid = models.IntegerField(primary_key=True) # answer ID

@@ -3,20 +3,25 @@
 {% block content %}
 <font size="+2">
 
-{% if not results.correct %}
-[{{lastquestion}}={{results.full_answer}}]<br>
-[{{ results.diff.0|safe }} &rarr; {{ results.diff.1|safe }} ]
+{% if last_results and not last_results.was_correct %}
+[{{ last_question }}={{ last_results.full_answer }}]<br>
+[{{ last_results.diff.0|safe }} &rarr; {{ last_results.diff.1|safe }} ]
 <br>
 {% endif %}
 
-<br>
+{% if last_results.actual_answered_word %}
+<font size="-2">[ btw,
+{{ last_results.actual_answered_word.Q }} &rarr;
+{{ last_results.actual_answered_word.A_orig }} ] </font><br>
+{% endif %}
 
+<br>
 <form name="run" action="." method="post" autocomplete="off">{% csrf_token %}
 {{ form.question }}
 <!--{{ newword }} = {{ form.answer }}<p>-->
-{{ question }} = <input id="answer" name="answer" type="text" value="" autocomplete="off" autofocus><p>
-{% if newword_data.choices %}
-<font size="-0">hints: {% for hint in newword_data.choices %} {{ hint }} &#151; {% endfor %} </font><p>
+{{ word.Q }} = <input id="answer" name="answer" type="text" value="" autocomplete="off" autofocus><p>
+{% if word_data.hint %}
+<font size="-0">hint: {% for hint in word_data.hint %} {{ hint }} &#151; {% endfor %} </font><p>
 {% endif %}
 <input type="submit" value="Submit" />
 <input type="submit" value="Ignore this word for this round" name="ignore" />

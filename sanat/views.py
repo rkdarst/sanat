@@ -59,7 +59,6 @@ listrunner_store = { }
 
 #@app.route('/', methods=('GET', 'POST'))
 def select(request):
-    #import IPython ; IPython.embed()
     Form = SelectorForm
     Form.base_fields['wordlist'].choices = config.list_wordfiles()
     # Set default wordlist to the last wordlist used
@@ -128,7 +127,7 @@ def select(request):
 
 class RunForm(Form):
     question = CharField(widget=forms.HiddenInput)
-    answer = CharField()
+    answer = CharField(required=False)
 
 #@app.route('/run/', methods=('GET', 'POST'))
 def run(request):
@@ -138,45 +137,41 @@ def run(request):
         return redirect(reverse('select'))
 
     runner, creation_time = listrunner_store[session['id']]
-    results = dict(correct=True)
+    results = dict(was_correct=True)
     lastquestion = None
     newword_data = None
+    context = c = { }
+    c['was_correct'] = True
 
     if request.method == 'POST':
       form = RunForm(request.POST)
       if form.is_valid():
-        question = form.cleaned_data['question']
-        lastquestion = question
-        answer = form.cleaned_data['answer']
+        last_question = c['last_question'] = form.cleaned_data['question']
+        last_answer = form.cleaned_data['answer']
         if form.cleaned_data.get('ignore', False):
             runner.ignore(question)
-        results = runner.answer(question, answer)
+        last_results = c['last_results'] = runner.answer(last_question, last_answer)
 
         A = models.Answer(user=request.user if not request.user.is_anonymous() else None,
                           sid=runner.session_id,
                           lid=runner.list_id,
-                          q=results['q'],
-                          a=results['a'],
-                          c=results['c'],
-                          correct=results['correct'])
-        #A.answer(results['correct'])
+                          q=last_results['q'],
+                          a=last_results['a'],
+                          c=last_results['c'],
+                          correct=last_results['was_correct'])
         A.save()
     else:
         pass
-    newword, newword_data = runner.question()
-    if newword == StopIteration:
+    word, word_data = runner.question()
+    c['word'] = word
+    c['word_data'] = word_data
+    if word == StopIteration:
         # Have some handling of the end of process...
         return redirect(url_for('select'))
-    form = RunForm(initial=dict(question=newword.serialize(), answer=None))
+    form = c['form'] = RunForm(initial=dict(question=word.serialize(), answer=None))
+    #import IPython ; IPython.embed()
 
-    return render(request, 'run.html',
-                  dict(form=form,
-                       lastquestion=lastquestion,
-                       results=results,
-                       newword=newword,
-                       question=newword.Q,
-                       newword_data=newword_data
-                       ))
+    return render(request, 'run.html', context)
 
 #@app.route('/stats/', methods=('GET', 'POST'))
 def stats(runner):

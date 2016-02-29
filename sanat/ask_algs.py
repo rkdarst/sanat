@@ -6,12 +6,13 @@ import re
 import six
 from six import iteritems
 
-#import learn
+from django.contrib import messages
+
 from . import config
 from . import util
 from . import models
+from . import shingle
 
-from django.contrib import messages
 
 def list_algs():
     """List all memorization argorithms available"""
@@ -58,7 +59,8 @@ class Word(object):
         # Remove parenthesized groups from answers.  Leave original
         # answer on the end.
         A_orig = A
-        A = re.sub('\([^)]*\)', '', A_orig).strip()
+        A = A.split(';')[0]
+        A = re.sub('\([^)]*\)', '', A).strip()
 
         self.Q = Q
         self.A = A
@@ -66,7 +68,14 @@ class Word(object):
         self.word_id = next_word_id[0]  ; next_word_id[0] += 1
 
     def check(self, answer):
-        if transform_unicode(answer.lower()) == self.A.lower():
+        def normalize(x):
+            x = x.strip().lower()
+            x.replace('.', '')
+            x.replace('?', '')
+            x.replace('!', '')
+            x.replace('  ', ' ')
+            return x
+        if normalize(transform_unicode(answer)) == normalize(self.A):
             return True
         return False
 
@@ -75,14 +84,14 @@ class _ListRunner(object):
         return 'ListRunner(%s)'%self.wordlist
     __repr__ = __str__
     def __init__(self, wordlist, **kwargs):
-
-        self.shingle_data = { }
+        self.shingler = None
         self.load_wordlist(wordlist, **kwargs)
         self.session_id = random.randint(0, 2**32-1)
 
 
     def load_wordlist(self, wordlist, from_english=False,
                       randomize=False, provide_choices=False, segment='all'):
+        self.provide_choices = True
         #print "init ListRunner", wordlist
         self.wordlist = wordlist
         data = config.get_wordfile(wordlist)
@@ -114,6 +123,7 @@ class _ListRunner(object):
             else:
                 # single-select form
                 words = words[segment[0]: segment[1]]
+        # Different levels of randomization
         if randomize == 2:
             # local randomization
             words2 = [ ]
@@ -127,22 +137,13 @@ class _ListRunner(object):
             random.shuffle(words)
 
         # If asked to provide choices, make shingles and store them
-        if provide_choices:
-            import shingle
-            self.shingle_data[1] = shingle.Shingler(words=(x.A for x in all_words),
-                                                    n=1)
-            self.shingle_data[2] = shingle.Shingler(words=(x.A for x in all_words),
-                                                    n=2)
-            self.shingle_data[3] = shingle.Shingler(words=(x.A for x in all_words),
-                                                    n=3)
+        self.shingler = shingle.Shingler(words=(x.A for x in all_words),
+                                         n=(1,2,3))
         # Done with preprocessing.  Create standard data structures.
         self.words = words
-        #if len(words) != 0:
-        #    self.questions, self.answers, self.answers_full = zip(*words)
-        #else:
-        #    self.questions = self.answers = self.answers_full = [ ]
-
         self.lookup = dict((word.serialize(), word) for word in words)
+        self.lookup_a = dict((word.A, word) for word in words)
+
     def question(self):
         """Get the next question.
 
@@ -158,51 +159,52 @@ class _ListRunner(object):
             return StopIteration, {}
         #nextword_answer = self.lookup[hash(nextword)]
         choices = None
-        if self.shingle_data:
-            choices = set()
-            n_choices = 10
-            for n in (3, 2, 1):
-                import heapq
-                jaccs = self.shingle_data[n].find_similar(nextword.A)
-                #print n, jaccs
-                while len(choices) < n_choices and jaccs:
-                    jacc, hint = heapq.heappop(jaccs)
-                    if hint in choices: continue
-                    #if random.random() < .8: continue
-                    choices.add(hint)
-                    if len(choices) >= n_choices:
-                        break
-                if len(choices) >= n_choices:
-                    break
+        if self.provide_choices:
+            choices = self.shingler.find_count_similar(nextword.A, count=10)
             choices = list(choices)
             random.shuffle(choices)
-        return nextword, dict(choices=choices)
+        return nextword, dict(hint=choices)
     def answer(self, question, answer):
-        asked_word = self.lookup[question]
-        is_correct = asked_word.check(answer)
+        word = self.lookup[question]
+        was_correct = word.check(answer)
         #print self.wordstat
-        self.wordstat[asked_word.serialize()]['hist'].append(is_correct)
+        self.wordstat[word.serialize()]['hist'].append(was_correct)
 
+        # objects.get_or_create has problems with initial values, so
+        # do the WordStatus creation or updating manually.
         try:
             word_status = models.WordStatus.objects.get(
-                wlid=asked_word.word_id,
+                wlid=word.word_id,
                 lid=self.list_id)
         except models.WordStatus.DoesNotExist:
-            word_status = models.WordStatus(wlid=asked_word.word_id,
+            word_status = models.WordStatus(wlid=word.word_id,
                                             lid=self.list_id)
-        word_status.answer(is_correct)
+        word_status.answer(was_correct)
         word_status.save()
 
-        if is_correct:
+        # Generate the results data.
+        if was_correct:
             self.wordstat[question]['r'] += 1
-            return dict(correct=1,
-                        q=question, a=answer, c=self.lookup[question].A_orig.lower())
+            return dict(was_correct=1,
+                        word=word,
+                        q=question, a=answer, c=word.A_orig.lower(),
+                        )
         else:
             self.wordstat[question]['w'] += 1
-            return dict(correct=0,
-                        q=question, a=answer, c=self.lookup[question].A_orig.lower(),
-                        diff=util.makediff(answer, self.lookup[question].A),
-                        full_answer=self.lookup[question].A_orig)
+            results = dict(was_correct=0,
+                        word=word,
+                        q=question, a=answer, c=word.A_orig.lower(),
+                        diff=util.makediff(answer, word.A),
+                        full_answer=word.A_orig)
+            # find the closest answer.
+            best_answer = self.shingler.find_count_similar(answer, count=1)
+            if best_answer:
+                best_answer = next(iter(best_answer))
+                best_answer_word = self.lookup_a[best_answer]
+                if best_answer_word.serialize() != question:
+                    results['actual_answered_word'] = best_answer_word
+            #
+            return results
 
 
 class Original(_ListRunner):
@@ -340,6 +342,39 @@ class V2(_ListRunner):
         #        # at least last two times.
         #        stat['last'] = count
         #        return word
+
+        return StopIteration
+        #nextword = self.questions[self.i]
+        #self.i += 1
+        #global i
+        #nextword = self.questions[i]
+        #i += 1
+        #print self.i
+        return nextword
+
+
+class V3(_ListRunner):
+    def __init__(self, *args, **kwargs):
+        # super-initialization
+        super(V2, self).__init__(*args, **kwargs)
+
+    def _next_question(self):
+        asked_words = set()
+        # anything old to check again?
+        # FIXME: user
+        max_seq = models.WordStatus.find_last_seq()
+        words = models.WordStatus.objects.filter(lid=self.list_id).order_by('-last_ts')
+        for asked in words:
+            asked_words.add(words.wlid)
+            if max_seq == words.wlid:
+                continue
+            if asked.c_short < .8:
+                break
+        else:
+            # list exhausted
+            pass
+
+
 
         return StopIteration
         #nextword = self.questions[self.i]
