@@ -19,12 +19,13 @@
 <form name="run" action="." method="post" autocomplete="off">{% csrf_token %}
 {{ form.question }}
 <!--{{ newword }} = {{ form.answer }}<p>-->
-{{ word.Q }} = <input id="answer" name="answer" type="text" value="" autocomplete="off" autofocus><p>
+{{ word.Q }} = <input id="answer" name="answer" type="text" value="" autocomplete="off" autofocus>
+<font size="-2">{{ word.seq }}</font><p>
 {% if word_data.hint %}
 <font size="-0">hint: {% for hint in word_data.hint %} {{ hint }} &#151; {% endfor %} </font><p>
 {% endif %}
 <input type="submit" value="Submit" />
-<input type="submit" value="Ignore this word for this round" name="ignore" />
+<input type="submit" value="Ignore this word for the rest of this round" name="ignore" />
 </form>
 </font>
 

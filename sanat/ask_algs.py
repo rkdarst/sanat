@@ -24,15 +24,27 @@ def get_alg(name):
     """Get a memorization algorithm by name"""
     return globals()[name]
 
-def transform_unicode(ans):
-    ans.replace('"a"', u'ä')
-    ans.replace('"A"', u'Ä')
-    ans.replace('"o"', u'ö')
-    ans.replace('"O"', u'Ö')
-    return ans
+def normalize(x, unicode=True):
+    x = x.strip().lower()
+    x = x.replace('.', '')
+    x = x.replace('?', '')
+    x = x.replace('!', '')
+    x = x.replace('  ', ' ')
+    if unicode:
+        x = normalize_unicode(x)
+    return x
+def normalize_unicode(x):
+    x = x.replace('"a', u'ä')
+    x = x.replace('"A', u'Ä')
+    x = x.replace('"o', u'ö')
+    x = x.replace('"O', u'Ö')
+    return x
 class DoNotUseWord(Exception):
+    """Exception for indicating that a word shouldn't be used."""
     pass
 class Word(object):
+    """Class representing one word."""
+    seq = None
     def __hash__(self):
         return hash(self._line)
     def serialize(self):
@@ -68,14 +80,7 @@ class Word(object):
         self.word_id = next_word_id[0]  ; next_word_id[0] += 1
 
     def check(self, answer):
-        def normalize(x):
-            x = x.strip().lower()
-            x.replace('.', '')
-            x.replace('?', '')
-            x.replace('!', '')
-            x.replace('  ', ' ')
-            return x
-        if normalize(transform_unicode(answer)) == normalize(self.A):
+        if normalize(answer) == normalize(self.A, unicode=False):
             return True
         return False
 
@@ -91,7 +96,7 @@ class _ListRunner(object):
 
     def load_wordlist(self, wordlist, from_english=False,
                       randomize=False, provide_choices=False, segment='all'):
-        self.provide_choices = True
+        self.provide_choices = provide_choices
         #print "init ListRunner", wordlist
         self.wordlist = wordlist
         data = config.get_wordfile(wordlist)
@@ -109,9 +114,11 @@ class _ListRunner(object):
                 words.append(Word(line, next_word_id=next_word_id, reverse=from_english))
             except DoNotUseWord:
                 pass
+        for i, word in enumerate(words):
+            word.seq = i
 
         # Store all_data to use for shingling below
-        all_words = words
+        all_words = list(words) # make a copy
         # if given data segment, only suggest the words from there.
         if segment is not None and segment != 'all':
             if isinstance(segment[0], tuple):
@@ -141,8 +148,8 @@ class _ListRunner(object):
                                          n=(1,2,3))
         # Done with preprocessing.  Create standard data structures.
         self.words = words
-        self.lookup = dict((word.serialize(), word) for word in words)
-        self.lookup_a = dict((word.A, word) for word in words)
+        self.lookup = dict((word.serialize(), word) for word in all_words)
+        self.lookup_a = dict((word.A, word) for word in all_words)
 
     def question(self):
         """Get the next question.
@@ -185,16 +192,19 @@ class _ListRunner(object):
         # Generate the results data.
         if was_correct:
             self.wordstat[question]['r'] += 1
+            self.wordstat[question]['streak'] += 1
             return dict(was_correct=1,
                         word=word,
                         q=question, a=answer, c=word.A_orig.lower(),
                         )
         else:
+            answer = normalize(answer, unicode=True)
             self.wordstat[question]['w'] += 1
+            self.wordstat[question]['streak'] = 0
             results = dict(was_correct=0,
                         word=word,
                         q=question, a=answer, c=word.A_orig.lower(),
-                        diff=util.makediff(answer, word.A),
+                        diff=util.makediff(answer, normalize(word.A,unicode=False)),
                         full_answer=word.A_orig)
             # find the closest answer.
             best_answer = self.shingler.find_count_similar(answer, count=1)
@@ -212,11 +222,21 @@ class Original(_ListRunner):
         # super-initialization
         super(Original, self).__init__(*args, **kwargs)
 
-        self.wordstat = dict((word.serialize(), dict(r=0, w=0, hist=[], last=None))
+        self.wordstat = dict((word.serialize(), dict(r=0, w=0, hist=[], last=None, streak=0))
                               for word in self.words )
         self.count = 0
         self.countSecondRound = None
 
+    ask_schedule = (2, 2)
+    def streak_wait_time(self, streak_length):
+        """Return the amount of time to wait before asking again.
+
+        for example, 2 = wait one word between asking again."""
+        try:
+            return self.ask_schedule[streak_length]
+        except IndexError:
+            pass
+        # return None, meaning do not ask any more.
 
     def _next_question(self):
         count = self.count
@@ -224,6 +244,7 @@ class Original(_ListRunner):
         for j in range(len(self.words)):
             word = self.words[j]
             stat = self.wordstat[word.serialize()]
+            # FIXME: move stat['last'] to the answer function.
             if stat['last'] == count-1 and not j==len(self.words)-1:
                 # CONTINUE if presented last time, only if we aren't out.
                 continue
@@ -235,8 +256,14 @@ class Original(_ListRunner):
                 # if not correct on the last round
                 stat['last'] = count
                 return word
-            if stat['last'] <= count-2 and not all(stat['hist'][-2:]):
-                # get it right at least the last two times
+            #if stat['last'] <= count-2 and not all(stat['hist'][-2:]):
+            #    # get it right at least the last two times
+            #    stat['last'] = count
+            #    return word
+            streak_wait_time = self.streak_wait_time(stat['streak'])
+            if stat['w'] > 0 and streak_wait_time and stat['last']+streak_wait_time <= count:
+                # We have gotten it right the last `streak` times, how
+                # long should we wait until doing it again?
                 stat['last'] = count
                 return word
         if self.countSecondRound is None:
@@ -270,6 +297,9 @@ class Original(_ListRunner):
         #print self.i
         return nextword
 
+class OriginalMorePractice(Original):
+    ask_schedule = (2, 2, 6)
+
 
 class V2(_ListRunner):
     def __init__(self, *args, **kwargs):
@@ -299,7 +329,7 @@ class V2(_ListRunner):
                 continue
             # delay size
             delay_size = n_times_right
-            print(i, n_times_right, delay_size, stat['last'], stat)
+            #print(i, n_times_right, delay_size, stat['last'], stat)
             if i >= stat['last'] + delay_size:
                 stat['last'] = i
                 return word
@@ -362,7 +392,7 @@ class V3(_ListRunner):
         asked_words = set()
         # anything old to check again?
         # FIXME: user
-        max_seq = models.WordStatus.find_last_seq()
+        seq = models.WordStatus.find_last_seq()
         words = models.WordStatus.objects.filter(lid=self.list_id).order_by('-last_ts')
         for asked in words:
             asked_words.add(words.wlid)

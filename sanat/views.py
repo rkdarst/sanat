@@ -52,8 +52,8 @@ class SelectorForm(Form):
     #segment = SelectField(default=False)
     segment = MultipleChoiceField(choices=[('all', 'All'), ], initial=['all'])
     alg = ChoiceField(label="Memorization algorithm")
-    do_list_words = BooleanField(initial=False, required=False)
-    do_stats = BooleanField(initial=False, required=False)
+    #do_list_words = BooleanField(initial=False, required=False, widget=forms.HiddenInput)
+    #do_stats = BooleanField(initial=False, required=False, widget=forms.HiddenInput)
 
 listrunner_store = { }
 
@@ -74,12 +74,14 @@ def select(request):
     if request.method == 'POST':
       form = SelectorForm(request.POST)
       if form.is_valid():
-        print('valid')
         wordlist = form.cleaned_data['wordlist']
         # store defaults so that we can pre-seed the form next time
-        request.session['wordlist'] = wordlist
-        request.session['last_data'] = form.cleaned_data
-        print(form.cleaned_data)
+        #request.session['wordlist'] = wordlist
+        last_state = dict(form.cleaned_data) # copy
+        last_state.pop('do_list_words', None)
+        last_state.pop('do_stats', None)
+        request.session['last_data'] = last_state
+        #
         id_ = random.randint(0, 2**32-1)
         request.session['id'] = id_
         run_class = ask_algs.get_alg(form.cleaned_data['alg'])
@@ -94,7 +96,7 @@ def select(request):
         if isinstance(form_segment, list) and form_segment[0] != 'all':
             # multi-select form
             segment = [ ]
-            for seg in form.segment.data:
+            for seg in form.cleaned_data['segment']:
                 seg = int(seg)
                 segment.append((segment_size*seg, segment_size*(seg+1)))
         elif form_segment[0] != 'all':
@@ -109,16 +111,19 @@ def select(request):
             segment=segment,
             provide_choices=form.cleaned_data['provide_choices'],
             )
-        if form.cleaned_data['do_list_words']:
+        if 'do_list_words' in request.POST: #form.cleaned_data['do_list_words']:
+            #import IPython ; IPython.embed()
+            #form.data['do_list_words'] = False
             wordpairs = runner.words
             return render(request, 'select.html',
                           dict(form=form, wordpairs=wordpairs))
-        if form.cleaned_data['do_stats']:
+        if 'do_stats' in request.POST: #form.cleaned_data['do_stats']:
             return stats(runner)
         listrunner_store[id_] = runner, time.time()
         return redirect(reverse('run'), dict(form=form))
       else:
-        print('invalid')
+        # invalid form (should never happen, but if it does this ignores it.)
+        pass
     form = SelectorForm(initial=request.session.get('last_data', {})   # defaults
                         )
     return render(request, 'select.html', dict(form=form))
@@ -148,7 +153,8 @@ def run(request):
       if form.is_valid():
         last_question = c['last_question'] = form.cleaned_data['question']
         last_answer = form.cleaned_data['answer']
-        if form.cleaned_data.get('ignore', False):
+        if 'ignore' in request.POST:
+            request.session['ignored'].append(1)
             runner.ignore(question)
         last_results = c['last_results'] = runner.answer(last_question, last_answer)
 
@@ -167,7 +173,7 @@ def run(request):
     c['word_data'] = word_data
     if word == StopIteration:
         # Have some handling of the end of process...
-        return redirect(url_for('select'))
+        return redirect(reverse('select'))
     form = c['form'] = RunForm(initial=dict(question=word.serialize(), answer=None))
     #import IPython ; IPython.embed()
 

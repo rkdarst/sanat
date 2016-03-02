@@ -63,9 +63,9 @@ def makediff(s1, s2):
         elif op == 'insert':
             s2new.extend(('<b>', escape(s2[j1:j2]), '</b>'))
         elif op == "delete":
-            s1new.extend(('<strike>', escape(s1[i1:i2]), '</strike>'))
+            s1new.extend(('<b><strike>', escape(s1[i1:i2]), '</strike></b>'))
         elif op == 'replace':
-            s1new.extend(('<strike>', escape(s1[i1:i2]), '</strike>'))
+            s1new.extend(('<b><strike>', escape(s1[i1:i2]), '</strike></b>'))
             s2new.extend(('<b>', escape(s2[j1:j2]), '</b>'))
         previousOp = op
         #if debug: print s1, s2

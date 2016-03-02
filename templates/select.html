@@ -5,8 +5,7 @@
 {% if wordpairs %}
 <table border="1">
 {% for word in wordpairs %}
-  <tr> <td>{{ loop.index }}</td> <td>{{word.0}}</td> <td>{{word.2}}</td></tr>
-{% endfor %}
+  <tr><td>{{ word.seq }}</td> <td>{{word.Q}}</td> <td>{{word.A_orig}}</td></tr>{% endfor %}
 </table>
 {%endif%}
 
@@ -19,7 +18,7 @@
 {{ form.provide_choices.label }}  {{ form.provide_choices }}<br>
 {{ form.segment.label }}  {{ form.segment }}<br>
 {{ form.alg.label }}  {{ form.alg }}<p> -->
-<input type="submit" value="Submit" />
+<input type="submit" value="Submit" autofocus />
 <input type="submit" value="List all words" name="do_list_words" />
 <input type="submit" value="Statistics" name="do_stats" />
 </form>
