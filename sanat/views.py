@@ -42,12 +42,18 @@ from . import config
 from . import models
 
 
+randomize_options = [(0, 'Original word order'),
+                     (2, 'Randomize locally'),
+                     (1, 'Randomize fully'),
+                      ]
 class SelectorForm(Form):
     wordlist = ChoiceField(choices=config.list_wordfiles())
     #wordlist = forms.MultipleChoiceField(choices=wordfiles)
     from_english = BooleanField(initial=True, required=False)
-    randomize = BooleanField(label="Randomize fully", initial=False, required=False)
-    randomize_local = BooleanField(label="Randomize locally", initial=False, required=False)
+    #randomize = BooleanField(label="Randomize fully", initial=False, required=False)
+    #randomize_local = BooleanField(label="Randomize locally", initial=False, required=False)
+    randomize = forms.ChoiceField(choices=randomize_options, widget=forms.RadioSelect(),
+                                  initial=0)
     provide_choices = BooleanField(label='Provide hints?', initial=False, required=False)
     #segment = SelectField(default=False)
     segment = MultipleChoiceField(choices=[('all', 'All'), ], initial=['all'])
@@ -85,11 +91,12 @@ def select(request):
         id_ = random.randint(0, 2**32-1)
         request.session['id'] = id_
         run_class = ask_algs.get_alg(form.cleaned_data['alg'])
-        randomize = 0
-        if form.cleaned_data['randomize_local']:
-            randomize = 2
-        elif form.cleaned_data['randomize']:
-            randomize = 1
+        #randomize = 0
+        #if form.cleaned_data['randomize_local']:
+        #    randomize = 2
+        #elif form.cleaned_data['randomize']:
+        #    randomize = 1
+        randomize = int(form.cleaned_data['randomize'])  # worst case: server error
         # segment
         segment = 'all'
         form_segment = form.cleaned_data['segment']
@@ -103,7 +110,7 @@ def select(request):
             # single-select form
             seg = int(form_segment)
             segment = (segment_size*seg, segment_size*(seg+1))
-        print(segment)
+        #request.session['ignored'] = [ ]
         runner = run_class(
             wordlist,
             from_english=form.cleaned_data['from_english'],
@@ -154,8 +161,9 @@ def run(request):
         last_question = c['last_question'] = form.cleaned_data['question']
         last_answer = form.cleaned_data['answer']
         if 'ignore' in request.POST:
-            request.session['ignored'].append(1)
-            runner.ignore(question)
+            #request.session['ignored'].append(1)
+            #runner.ignore(question)
+            pass
         last_results = c['last_results'] = runner.answer(last_question, last_answer)
 
         A = models.Answer(user=request.user if not request.user.is_anonymous() else None,
