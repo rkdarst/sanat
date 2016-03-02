@@ -8,6 +8,7 @@ from django.utils import timezone
 class WordStatus(models.Model):
     class Meta:
         index_together = [["lid", "wlid"],
+                          ["last_seq", ],
                          ]
     wid         = models.IntegerField(primary_key=True)
     lid         = models.IntegerField(null=True, blank=True)    # list ID
