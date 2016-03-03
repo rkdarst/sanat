@@ -1,5 +1,6 @@
 # Richard Darst, 2015
 
+import hashlib
 import itertools
 import random
 import re
@@ -13,6 +14,12 @@ from . import util
 from . import models
 from . import shingle
 
+def hash_stable(x):
+    """Stable hash function for strings"""
+    # hash() buildin is now randomized in py3!
+    x = hashlib.sha256(x.encode('utf8'))
+    #return int(x.hexdigest(), 16) % 2**32
+    return int(x.hexdigest()[-16:], 16) % 2**64
 
 def list_algs():
     """List all memorization argorithms available"""
@@ -46,7 +53,7 @@ class Word(object):
     """Class representing one word."""
     seq = None
     def __hash__(self):
-        return hash(self._line)
+        return hash_stable(self._line)
     def serialize(self):
         """Used in wordlist.lookup[]"""
         return self.Q
@@ -100,7 +107,7 @@ class _ListRunner(object):
         #print "init ListRunner", wordlist
         self.wordlist = wordlist
         data = config.get_wordfile(wordlist)
-        self.list_id = hash('file::'+wordlist)
+        self.list_id = hash_stable('file::'+wordlist)
         # Check if original file is reversed
         if '###reversed' in data[:512]:
             from_english = not from_english
