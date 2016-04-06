@@ -19,7 +19,7 @@ def hash_stable(x):
     # hash() buildin is now randomized in py3!
     x = hashlib.sha256(x.encode('utf8'))
     #return int(x.hexdigest(), 16) % 2**32
-    return int(x.hexdigest()[-16:], 16) % 2**64
+    return int(x.hexdigest()[-16:], 16) % 2**63
 
 def list_algs():
     """List all memorization argorithms available"""
@@ -84,7 +84,8 @@ class Word(object):
         self.Q = Q
         self.A = A
         self.A_orig = A_orig
-        self.word_id = next_word_id[0]  ; next_word_id[0] += 1
+        #self.word_id = next_word_id[0]  ; next_word_id[0] += 1
+        self.word_id = hash_stable(A)
 
     def check(self, answer):
         if normalize(answer) == normalize(self.A, unicode=False):
@@ -96,6 +97,7 @@ class _ListRunner(object):
         return 'ListRunner(%s)'%self.wordlist
     __repr__ = __str__
     def __init__(self, wordlist, **kwargs):
+        self.wordlist = wordlist
         self.shingler = None
         self.load_wordlist(wordlist, **kwargs)
         self.session_id = random.randint(0, 2**32-1)

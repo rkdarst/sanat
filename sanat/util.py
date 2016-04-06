@@ -54,10 +54,10 @@ def makediff(s1, s2):
         #if debug: print op, i1, i2, j1, j2, '->'
         #if debug: print s1, s2
         if op == 'equal':
-            if i2-i1 < 4 and len(s1new) > 1 and previousOp == "replace":
-                s1new[-2] += s1[i1:i2]
-                s2new[-2] += s2[j1:j2]
-            else:
+            #if i2-i1 < 4 and len(s1new) > 1 and previousOp == "replace":
+            #    s1new[-2] += escape(s1[i1:i2])
+            #    s2new[-2] += escape(s2[j1:j2])
+            #else:
                 s1new.append(escape(s1[i1:i2]))
                 s2new.append(escape(s2[j1:j2]))
         elif op == 'insert':

@@ -29,6 +29,7 @@ import time
 #     validators
 #from flask_wtf import Form
 #from django.forms import Form
+from django.contrib import messages
 from django.core.urlresolvers import reverse
 import django.forms as forms
 from django.forms import Form
@@ -118,6 +119,9 @@ def select(request):
             segment=segment,
             provide_choices=form.cleaned_data['provide_choices'],
             )
+        if len(runner.words) == 0:
+          messages.add_message(request, messages.ERROR,
+                              "There are no words in the list.")
         if 'do_list_words' in request.POST: #form.cleaned_data['do_list_words']:
             #import IPython ; IPython.embed()
             #form.data['do_list_words'] = False
@@ -145,14 +149,16 @@ class RunForm(Form):
 def run(request):
     session = request.session
     if 'id' not in session or session['id'] not in listrunner_store:
-        #flask.flash("Your stored ListRunner session has been lost (server restarted).")
+        messages.add_message(request, messages.INFO,
+                             "Your stored ListRunner session has been lost (server restarted).")
         return redirect(reverse('select'))
 
+    context = c = { }
     runner, creation_time = listrunner_store[session['id']]
+    c['runner'] = runner
     results = dict(was_correct=True)
     lastquestion = None
     newword_data = None
-    context = c = { }
     c['was_correct'] = True
 
     if request.method == 'POST':

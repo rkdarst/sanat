@@ -1,6 +1,7 @@
 <html>
 
 <head>
+  <title>{% block title %}Sanat{% endblock %}</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1" />
@@ -8,15 +9,15 @@
 
 <body{%block body_tags%}{%endblock%}>
 
-{% with messages=get_flashed_messages %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+{% if messages %}
+<div style="border:2px solid black;">
+<ul class="messages">
+  {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+  {% endfor %}
+</ul>
+</div>
+{% endif %}
 
 {% block content %}
 
